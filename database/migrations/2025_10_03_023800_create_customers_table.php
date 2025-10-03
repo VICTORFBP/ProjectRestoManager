@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('email')->nullable()->unique();
             $table->string('phone')->nullable();
             $table->timestamps();
+            $table->integer('loyalty_points')->default(0);
+
         });
     }
 

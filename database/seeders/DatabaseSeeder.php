@@ -11,10 +11,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Llama al seeder de roles
-        $this->call(RoleSeeder::class);
-        $this->call(UserSeeder::class);
-        $this->call(CustomerSeeder::class);
-        $this->call(OrderSeeder::class);
+        $this->call([
+            RoleSeeder::class,
+            UserSeeder::class,
+            CustomerSeeder::class,
+            CategorySeeder::class,   // categorías de menú
+            MenuItemSeeder::class,   // platos/bebidas
+            OrderSeeder::class,      // pedidos
+            OrderItemSeeder::class,  // items dentro de los pedidos
+        ]);
     }
 }
