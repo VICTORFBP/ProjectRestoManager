@@ -7,15 +7,67 @@ use Illuminate\Http\Request;
 
 class TableController extends Controller
 {
-    public function index() { return Table::all(); }
-    public function show($id) { return Table::findOrFail($id); }
-    public function store(Request $request) {
-        return Table::create($request->validate(['number'=>'required|integer','capacity'=>'required|integer|min:1']));
+    /**
+     * Mostrar todas las mesas.
+     */
+    public function index()
+    {
+        return response()->json(Table::all(), 200);
     }
-    public function update(Request $request, $id) {
-        $table = Table::findOrFail($id);
-        $table->update($request->all());
-        return $table;
+
+    /**
+     * Crear una nueva mesa.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|unique:tables,name',
+            'seats' => 'required|integer|min:1',
+            'status' => 'in:disponible,ocupada,reservada',
+        ]);
+
+        $table = Table::create($validated);
+
+        return response()->json([
+            'message' => 'Mesa creada exitosamente',
+            'table' => $table,
+        ], 201);
     }
-    public function destroy($id) { return Table::destroy($id); }
+
+    /**
+     * Mostrar una mesa específica.
+     */
+    public function show(Table $table)
+    {
+        return response()->json($table, 200);
+    }
+
+    /**
+     * Actualizar una mesa.
+     */
+    public function update(Request $request, Table $table)
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|unique:tables,name,' . $table->id,
+            'seats' => 'sometimes|integer|min:1',
+            'status' => 'sometimes|in:disponible,ocupada,reservada',
+        ]);
+
+        $table->update($validated);
+
+        return response()->json([
+            'message' => 'Mesa actualizada correctamente',
+            'table' => $table,
+        ], 200);
+    }
+
+    /**
+     * Eliminar una mesa.
+     */
+    public function destroy(Table $table)
+    {
+        $table->delete();
+
+        return response()->json(['message' => 'Mesa eliminada correctamente'], 200);
+    }
 }
