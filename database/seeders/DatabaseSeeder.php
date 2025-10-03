@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,   // categorías de menú
             MenuItemSeeder::class,   // platos/bebidas
             OrderSeeder::class,      // pedidos
-            OrderItemSeeder::class,  // items dentro de los pedidos
+            OrderItemSeeder::class,  // items dentro de los pedidos|
+            TableSeeder::class,     // mesas
         ]);
     }
 }
