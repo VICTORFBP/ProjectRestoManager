@@ -21,16 +21,13 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->routes(function () {
-            // Rutas de la API
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
-            // Rutas web
-            if (file_exists(base_path('routes/web.php'))) {
-                Route::middleware('web')
-                    ->group(base_path('routes/web.php'));
-            }
+            // Si no quieres usar web.php puedes comentar esta parte:
+            // Route::middleware('web')
+            //     ->group(base_path('routes/web.php'));
         });
     }
 }
