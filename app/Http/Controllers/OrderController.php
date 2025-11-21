@@ -3,33 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\MenuItem;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    /**
-     * Listar todos los pedidos
-     */
     public function index()
     {
-        $orders = Order::with(['customer','user','items.menuItem'])->get();
-        return response()->json($orders);
+        return Order::with(['customer','user','items.menuItem'])->get();
     }
 
-    /**
-     * Mostrar un pedido específico
-     */
     public function show($id)
     {
-        $order = Order::with(['customer','user','items.menuItem'])->findOrFail($id);
-        return response()->json($order);
+        return Order::with(['customer','user','items.menuItem'])->findOrFail($id);
     }
 
-    /**
-     * Crear un nuevo pedido
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -38,13 +26,12 @@ class OrderController extends Controller
             'user_id'     => 'nullable|exists:users,id',
             'status'      => 'nullable|in:pendiente,servido,completado,cancelado',
             'notes'       => 'nullable|string',
-            'items'       => 'required|array',
+            'items'       => 'required|array|min:1',
             'items.*.menu_item_id' => 'required|exists:menu_items,id',
             'items.*.quantity'     => 'required|integer|min:1',
             'items.*.special_instructions' => 'nullable|string',
         ]);
 
-        // Crear pedido
         $order = Order::create([
             'customer_id' => $data['customer_id'] ?? null,
             'table_id'    => $data['table_id'] ?? null,
@@ -58,6 +45,7 @@ class OrderController extends Controller
 
         foreach ($data['items'] as $itemData) {
             $menuItem = MenuItem::findOrFail($itemData['menu_item_id']);
+
             $subtotal = $menuItem->price * $itemData['quantity'];
 
             $order->items()->create([
@@ -77,9 +65,6 @@ class OrderController extends Controller
         return response()->json($order->load('items.menuItem'), 201);
     }
 
-    /**
-     * Actualizar un pedido
-     */
     public function update(Request $request, $id)
     {
         $order = Order::findOrFail($id);
@@ -94,13 +79,9 @@ class OrderController extends Controller
         return response()->json($order->load('items.menuItem'));
     }
 
-    /**
-     * Eliminar un pedido
-     */
     public function destroy($id)
     {
-        $order = Order::findOrFail($id);
-        $order->delete();
+        Order::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Pedido eliminado correctamente']);
     }

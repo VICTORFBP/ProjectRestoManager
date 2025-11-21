@@ -2,47 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MenuItem;
 use Illuminate\Http\Request;
 
 class MenuItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return MenuItem::with('category')->get();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function show($id)
+    {
+        return MenuItem::with('category')->findOrFail($id);
+    }
+
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name'        => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'price'       => 'required|numeric|min:0',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+        return MenuItem::create($data);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $item = MenuItem::findOrFail($id);
+        $item->update($request->all());
+        return $item;
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy($id)
     {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return MenuItem::destroy($id);
     }
 }

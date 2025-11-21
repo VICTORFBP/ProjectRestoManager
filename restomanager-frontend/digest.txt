@@ -1,0 +1,2621 @@
+Directory structure:
+└── restomanager-frontend/
+    ├── README.md
+    ├── eslint.config.js
+    ├── index.html
+    ├── package.json
+    ├── postcss.config.js
+    ├── tailwind.config.js
+    ├── vite.config.js
+    └── src/
+        ├── App.css
+        ├── App.jsx
+        ├── index.css
+        ├── main.jsx
+        ├── api/
+        │   ├── axios.js
+        │   ├── categories.js
+        │   ├── customers.js
+        │   ├── menuItems.js
+        │   ├── orders.js
+        │   ├── tables.js
+        │   └── users.js
+        ├── components/
+        │   ├── dashboard/
+        │   │   ├── Occupancy.jsx
+        │   │   ├── OrdersChart.jsx
+        │   │   ├── RevenueChart.jsx
+        │   │   ├── StatsCard.jsx
+        │   │   └── TopItems.jsx
+        │   ├── layout/
+        │   │   ├── AppLayout.jsx
+        │   │   ├── Navbar.jsx
+        │   │   └── Sidebar.jsx
+        │   ├── table/
+        │   │   └── DataTable.jsx
+        │   └── ui/
+        │       ├── Button.jsx
+        │       ├── Input.jsx
+        │       ├── Loader.jsx
+        │       ├── Modal.jsx
+        │       └── Select.jsx
+        ├── pages/
+        │   ├── Dashboard.jsx
+        │   ├── MenuItems/
+        │   │   ├── index.jsx
+        │   │   ├── MenuCreate.jsx
+        │   │   ├── MenuEdit.jsx
+        │   │   └── MenuList.jsx
+        │   ├── Orders/
+        │   │   ├── index.jsx
+        │   │   ├── OrderCreate.jsx
+        │   │   ├── OrderEdit.jsx
+        │   │   └── OrderList.jsx
+        │   ├── Tables/
+        │   │   ├── index.jsx
+        │   │   ├── TableCreate.jsx
+        │   │   ├── TableEdit.jsx
+        │   │   └── TableList.jsx
+        │   └── Users/
+        │       ├── index.jsx
+        │       ├── UserCreate.jsx
+        │       ├── UserEdit.jsx
+        │       └── UserList.jsx
+        └── routes/
+            └── routes.jsx
+
+================================================
+FILE: README.md
+================================================
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+
+Note: This will impact Vite dev & build performances.
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+
+================================================
+FILE: eslint.config.js
+================================================
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+
+
+
+================================================
+FILE: index.html
+================================================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>restomanager-frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+
+
+================================================
+FILE: package.json
+================================================
+{
+  "name": "restomanager-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.554.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "vite": "^7.2.4"
+  }
+}
+
+
+
+================================================
+FILE: postcss.config.js
+================================================
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+
+
+================================================
+FILE: tailwind.config.js
+================================================
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+
+
+================================================
+FILE: vite.config.js
+================================================
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler']],
+      },
+    }),
+  ],
+})
+
+
+
+================================================
+FILE: src/App.css
+================================================
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+
+================================================
+FILE: src/App.jsx
+================================================
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "/vite.svg";
+import "./App.css";
+
+function App() {
+    const [count, setCount] = useState(0);
+
+    return (
+        <>
+            <div>
+                <a href="https://vite.dev" target="_blank">
+                    <img src={viteLogo} className="logo" alt="Vite logo" />
+                </a>
+                <a href="https://react.dev" target="_blank">
+                    <img
+                        src={reactLogo}
+                        className="logo react"
+                        alt="React logo"
+                    />
+                </a>
+            </div>
+            <h1 className="text-5xl font-bold text-blue-500">
+                Tailwind FUNCIONA ðŸš€
+            </h1>
+
+            <div className="card">
+                <button onClick={() => setCount((count) => count + 1)}>
+                    count is {count}
+                </button>
+                <p>
+                    Edit <code>src/App.jsx</code> and save to test HMR
+                </p>
+            </div>
+            <p className="read-the-docs">
+                Click on the Vite and React logos to learn more
+            </p>
+        </>
+    );
+}
+
+export default App;
+
+
+
+================================================
+FILE: src/index.css
+================================================
+[Binary file]
+
+
+================================================
+FILE: src/main.jsx
+================================================
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import AppRoutes from "./routes/routes";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <AppRoutes />
+  </StrictMode>
+);
+
+
+
+================================================
+FILE: src/api/axios.js
+================================================
+// src/api/axios.js
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://localhost:8000/api", // Ajustar si tu backend usa otro puerto
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
+
+export default api;
+
+
+
+================================================
+FILE: src/api/categories.js
+================================================
+import api from "./axios";
+
+const categoriesAPI = {
+  getAll: () => api.get("/categories"),
+  getById: (id) => api.get(`/categories/${id}`),
+  create: (data) => api.post("/categories", data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  remove: (id) => api.delete(`/categories/${id}`),
+};
+
+export default categoriesAPI;
+
+
+
+================================================
+FILE: src/api/customers.js
+================================================
+import api from "./axios";
+
+const customersAPI = {
+  getAll: () => api.get("/customers"),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post("/customers", data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  remove: (id) => api.delete(`/customers/${id}`),
+};
+
+export default customersAPI;
+
+
+
+================================================
+FILE: src/api/menuItems.js
+================================================
+import api from "./axios";
+
+const menuItemsAPI = {
+  getAll: () => api.get("/menu-items"),
+  getById: (id) => api.get(`/menu-items/${id}`),
+  create: (data) => api.post("/menu-items", data),
+  update: (id, data) => api.put(`/menu-items/${id}`, data),
+  remove: (id) => api.delete(`/menu-items/${id}`),
+};
+
+export default menuItemsAPI;
+
+
+
+================================================
+FILE: src/api/orders.js
+================================================
+import api from "./axios";
+
+const ordersAPI = {
+  getAll: () => api.get("/orders"),
+  getById: (id) => api.get(`/orders/${id}`),
+  create: (data) => api.post("/orders", data),
+  update: (id, data) => api.put(`/orders/${id}`, data),
+  remove: (id) => api.delete(`/orders/${id}`),
+};
+
+export default ordersAPI;
+
+
+
+================================================
+FILE: src/api/tables.js
+================================================
+import api from "./axios";
+
+const tablesAPI = {
+  getAll: () => api.get("/tables"),
+  getById: (id) => api.get(`/tables/${id}`),
+  create: (data) => api.post("/tables", data),
+  update: (id, data) => api.put(`/tables/${id}`, data),
+  remove: (id) => api.delete(`/tables/${id}`),
+};
+
+export default tablesAPI;
+
+
+
+================================================
+FILE: src/api/users.js
+================================================
+import api from "./axios";
+
+const usersAPI = {
+  getAll: () => api.get("/users"),
+  getById: (id) => api.get(`/users/${id}`),
+  create: (data) => api.post("/users", data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  remove: (id) => api.delete(`/users/${id}`),
+};
+
+export default usersAPI;
+
+
+
+================================================
+FILE: src/components/dashboard/Occupancy.jsx
+================================================
+export default function Occupancy({ tables = [], orders = [] }) {
+  const total = tables.length || 1;
+  const occupied = tables.filter(t => t.status === 'ocupada').length;
+  const pct = Math.round((occupied / total) * 100);
+  return (
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="font-semibold">OcupaciÃ³n mesas</h3>
+      <div className="text-2xl font-bold mt-2">{pct}%</div>
+      <div className="text-xs text-gray-500 mt-1">{occupied} de {total} mesas ocupadas</div>
+      <div className="w-full h-2 bg-gray-200 rounded mt-3">
+        <div style={{ width: `${pct}%` }} className="h-full bg-blue-500 rounded" />
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/dashboard/OrdersChart.jsx
+================================================
+export default function OrdersChart({ data = [] /* [{label:'2025-11-01', value:3}, ...] */ }) {
+  if (!data.length) return <div className="p-4">No hay datos</div>;
+
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="font-semibold mb-3">Pedidos por dÃ­a</h3>
+      <div className="flex gap-2 items-end h-40">
+        {data.map((d, i) => {
+          const h = Math.round((d.value / max) * 100);
+          return (
+            <div key={i} className="flex-1 text-center">
+              <div style={{ height: `${h}%` }} className="bg-blue-500 rounded-t transition-all" />
+              <div className="text-xs mt-1">{d.value}</div>
+              <div className="text-xs text-gray-500">{d.label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/dashboard/RevenueChart.jsx
+================================================
+function pathFromPoints(points, w, h, padding = 10) {
+  const max = Math.max(...points.map(p => p.y), 1);
+  const stepX = (w - padding*2) / Math.max(points.length - 1, 1);
+  return points.map((p,i) => {
+    const x = padding + i * stepX;
+    const y = h - padding - (p.y / max) * (h - padding*2);
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+}
+
+export default function RevenueChart({ data = [] /* [{label, value}] */ }) {
+  if (!data.length) return <div className="p-4">No hay datos</div>;
+  const w = 600, h = 140;
+  const points = data.map(d => ({ x:0, y: Number(d.value) }));
+  const path = pathFromPoints(points, w, h);
+  return (
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="font-semibold mb-3">Ingresos diarios</h3>
+      <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="160">
+        <path d={path} stroke="#10b981" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <div className="flex gap-4 mt-2 text-xs text-gray-600">
+        {data.slice(0,5).map((d,i)=> <div key={i}>{d.label}: ${d.value}</div>)}
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/dashboard/StatsCard.jsx
+================================================
+export default function StatsCard({ title, value, subtitle }) {
+  return (
+    <div className="bg-white p-4 rounded-lg shadow">
+      <div className="text-sm text-gray-500">{title}</div>
+      <div className="text-2xl font-bold mt-2">{value}</div>
+      {subtitle && <div className="text-xs text-gray-400 mt-1">{subtitle}</div>}
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/dashboard/TopItems.jsx
+================================================
+export default function TopItems({ items = [] }) {
+  return (
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="font-semibold mb-3">Top items vendidos</h3>
+      <ul className="flex flex-col gap-2">
+        {items.length === 0 && <li className="text-sm text-gray-500">Sin datos</li>}
+        {items.map((it, idx) => (
+          <li key={idx} className="flex justify-between">
+            <span>{idx+1}. {it.name}</span>
+            <span className="font-medium">{it.count}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/layout/AppLayout.jsx
+================================================
+import { Outlet, NavLink } from "react-router-dom";
+import { Home, Utensils, ListOrdered, Table2, Users } from "lucide-react";
+
+export default function AppLayout() {
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+
+      {/* SIDEBAR */}
+      <aside className="w-64 bg-gray-900 text-white flex flex-col">
+        <div className="p-6 font-bold text-xl border-b border-gray-700">
+          RestoManager
+        </div>
+
+        <nav className="flex-1 p-4 flex flex-col gap-1">
+          <NavItem to="/" label="Dashboard" icon={<Home size={18} />} />
+          <NavItem to="/menu-items" label="MenÃº" icon={<Utensils size={18} />} />
+          <NavItem to="/orders" label="Pedidos" icon={<ListOrdered size={18} />} />
+          <NavItem to="/tables" label="Mesas" icon={<Table2 size={18} />} />
+          <NavItem to="/users" label="Usuarios" icon={<Users size={18} />} />
+        </nav>
+      </aside>
+
+      {/* CONTENIDO */}
+      <main className="flex-1 p-6">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+function NavItem({ to, label, icon }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+          isActive
+            ? "bg-blue-600 text-white"
+            : "text-gray-300 hover:bg-gray-800 hover:text-white"
+        }`
+      }
+    >
+      {icon}
+      <span>{label}</span>
+    </NavLink>
+  );
+}
+
+
+
+================================================
+FILE: src/components/layout/Navbar.jsx
+================================================
+import { Link, useLocation } from "react-router-dom";
+import { Menu, Utensils, Receipt, Table, Users, User } from "lucide-react";
+
+export default function Navbar() {
+  const { pathname } = useLocation();
+
+  const links = [
+    { label: "Dashboard", to: "/", icon: <Menu size={18} /> },
+    { label: "MenÃº", to: "/menu-items", icon: <Utensils size={18} /> },
+    { label: "Pedidos", to: "/orders", icon: <Receipt size={18} /> },
+    { label: "Mesas", to: "/tables", icon: <Table size={18} /> },
+    { label: "Clientes", to: "/customers", icon: <Users size={18} /> },
+  ];
+
+  return (
+    <nav className="w-full bg-gray-900 text-gray-200 shadow-lg px-6 py-4 flex justify-between items-center">
+      
+      {/* LOGO */}
+      <Link to="/" className="text-2xl font-bold tracking-wide text-white">
+        RestoManager
+      </Link>
+
+      {/* MENÃš CENTRAL */}
+      <div className="flex gap-6">
+        {links.map((item) => {
+          const active = pathname === item.to;
+
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm font-medium
+                ${
+                  active
+                    ? "bg-blue-600 text-white shadow"
+                    : "hover:bg-gray-700 hover:text-white"
+                }`}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* AVATAR USUARIO */}
+      <div className="flex items-center gap-3 cursor-pointer hover:text-white transition">
+        <User size={22} />
+        <span className="font-medium">Admin</span>
+      </div>
+    </nav>
+  );
+}
+
+
+
+================================================
+FILE: src/components/layout/Sidebar.jsx
+================================================
+import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Utensils,
+  Receipt,
+  Table,
+  Users,
+  UserCog
+} from "lucide-react";
+
+export default function Sidebar() {
+  const { pathname } = useLocation();
+
+  const menu = [
+    { label: "Dashboard", to: "/", icon: <LayoutDashboard size={20} /> },
+    { label: "MenÃº", to: "/menu-items", icon: <Utensils size={20} /> },
+    { label: "Pedidos", to: "/orders", icon: <Receipt size={20} /> },
+    { label: "Mesas", to: "/tables", icon: <Table size={20} /> },
+    { label: "Clientes", to: "/customers", icon: <Users size={20} /> },
+    { label: "Usuarios", to: "/users", icon: <UserCog size={20} /> },
+  ];
+
+  return (
+    <aside className="w-64 bg-gray-900 text-gray-200 h-full p-6 shadow-xl">
+
+      <h2 className="text-xl font-bold mb-8 text-white tracking-wide">
+        Panel de Control
+      </h2>
+
+      <ul className="flex flex-col gap-3">
+        {menu.map((item) => {
+          const active = pathname === item.to;
+
+          return (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all 
+                  ${
+                    active
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "hover:bg-gray-700 hover:text-white"
+                  }
+                `}
+              >
+                {item.icon}
+                <span className="text-md font-medium">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+    </aside>
+  );
+}
+
+
+
+================================================
+FILE: src/components/table/DataTable.jsx
+================================================
+export default function DataTable({ columns, data }) {
+  return (
+    <div className="overflow-x-auto w-full">
+      <table className="min-w-full border border-gray-300 rounded">
+        <thead>
+          <tr className="bg-gray-100">
+            {columns.map((col) => (
+              <th
+                key={col}
+                className="py-2 px-4 border text-gray-700 text-left"
+              >
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="text-center py-4 text-gray-500">
+                No hay datos
+              </td>
+            </tr>
+          ) : (
+            data.map((row, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                {Object.values(row).map((value, i) => (
+                  <td
+                    key={i}
+                    className="py-2 px-4 border text-gray-800"
+                  >
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/ui/Button.jsx
+================================================
+export default function Button({ children, variant = "primary", ...props }) {
+  const base = "px-4 py-2 rounded font-medium transition";
+  const variants = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+  };
+
+  return (
+    <button className={`${base} ${variants[variant]}`} {...props}>
+      {children}
+    </button>
+  );
+}
+
+
+
+================================================
+FILE: src/components/ui/Input.jsx
+================================================
+export default function Input({ label, ...props }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {label && <label className="font-medium">{label}</label>}
+      <input
+        {...props}
+        className="border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      />
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/ui/Loader.jsx
+================================================
+export default function Loader() {
+  return (
+    <div className="flex justify-center items-center py-4">
+      <div className="w-6 h-6 border-2 border-dashed rounded-full animate-spin"></div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/ui/Modal.jsx
+================================================
+export default function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded shadow-xl w-[400px]">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            âœ–
+          </button>
+        </div>
+
+        {children}
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/components/ui/Select.jsx
+================================================
+export default function Select({ label, options = [], ...props }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {label && <label className="font-medium">{label}</label>}
+      <select
+        {...props}
+        className="border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/Dashboard.jsx
+================================================
+import { useEffect, useState } from "react";
+import api from "../api/axios";
+import Loader from "../components/ui/Loader";
+import StatsCard from "../components/dashboard/StatsCard";
+import OrdersChart from "../components/dashboard/OrdersChart";
+import RevenueChart from "../components/dashboard/RevenueChart";
+import TopItems from "../components/dashboard/TopItems";
+import Occupancy from "../components/dashboard/Occupancy";
+
+export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const fetchAll = async () => {
+    try {
+      const [oRes, mRes, tRes, cRes] = await Promise.all([
+        api.get("/orders"),
+        api.get("/menu-items"),
+        api.get("/tables"),
+        api.get("/customers"),
+      ]);
+      setOrders(oRes.data);
+      setMenuItems(mRes.data);
+      setTables(tRes.data);
+      setCustomers(cRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <Loader />;
+
+  // prepare small datasets
+  // orders by created_at date (group)
+  const ordersByDayMap = {};
+  orders.forEach(o => {
+    const d = new Date(o.created_at).toISOString().slice(0,10);
+    ordersByDayMap[d] = (ordersByDayMap[d] || 0) + 1;
+  });
+  const ordersByDay = Object.entries(ordersByDayMap).map(([label,value])=>({ label, value }));
+
+  // revenue by day (sum subtotals from items)
+  const revenueMap = {};
+  orders.forEach(o => {
+    const d = new Date(o.created_at).toISOString().slice(0,10);
+    revenueMap[d] = (revenueMap[d] || 0) + Number(o.total || 0);
+  });
+  const revenueByDay = Object.entries(revenueMap).map(([label,value])=>({ label, value: value.toFixed(2) }));
+
+  // top items (count)
+  const itemCount = {};
+  orders.forEach(o => {
+    (o.items || []).forEach(it => {
+      const name = (it.menu_item && it.menu_item.name) || `id:${it.menu_item_id}`;
+      itemCount[name] = (itemCount[name] || 0) + Number(it.quantity || 1);
+    });
+  });
+  const topItems = Object.entries(itemCount)
+    .map(([name,count])=>({ name, count }))
+    .sort((a,b)=>b.count-a.count)
+    .slice(0,6);
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Dashboard avanzado</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatsCard title="Pedidos" value={orders.length} />
+        <StatsCard title="Ingresos" value={`$${orders.reduce((s,o)=>s + Number(o.total||0),0).toFixed(2)}`} />
+        <StatsCard title="Items en menÃº" value={menuItems.length} />
+        <StatsCard title="Clientes" value={customers.length} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          <OrdersChart data={ordersByDay} />
+          <RevenueChart data={revenueByDay} />
+        </div>
+
+        <div className="space-y-4">
+          <TopItems items={topItems} />
+          <Occupancy tables={tables} orders={orders} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/MenuItems/index.jsx
+================================================
+export { default as MenuList } from "./MenuList";
+export { default as MenuCreate } from "./MenuCreate";
+export { default as MenuEdit } from "./MenuEdit";
+
+
+
+================================================
+FILE: src/pages/MenuItems/MenuCreate.jsx
+================================================
+import { useState, useEffect } from "react";
+import menuItemsAPI from "../../api/menuItems";
+import categoriesAPI from "../../api/categories";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate } from "react-router-dom";
+
+export default function MenuCreate() {
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    category_id: "",
+  });
+
+  const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    const res = await categoriesAPI.getAll();
+    setCategories(res.data);
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await menuItemsAPI.create(form);
+      navigate("/menu-items");
+    } catch (error) {
+      console.error("Error creando Ã­tem:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Agregar Nuevo Plato</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+          <Input
+            label="Nombre del plato"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Ej: Pizza Margarita"
+            required
+          />
+
+          <Input
+            label="Precio"
+            type="number"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            placeholder="Ej: 15.99"
+            required
+          />
+
+          <Select
+            label="CategorÃ­a"
+            name="category_id"
+            value={form.category_id}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "", label: "-- Seleccione categorÃ­a --" },
+              ...categories.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/menu-items")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Guardar Plato</Button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/MenuItems/MenuEdit.jsx
+================================================
+import { useState, useEffect } from "react";
+import menuItemsAPI from "../../api/menuItems";
+import categoriesAPI from "../../api/categories";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function MenuEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    category_id: "",
+  });
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    loadItem();
+    loadCategories();
+  }, []);
+
+  const loadItem = async () => {
+    try {
+      const res = await menuItemsAPI.getById(id);
+      setForm(res.data);
+    } catch (error) {
+      console.error("Error cargando Ã­tem:", error);
+    }
+  };
+
+  const loadCategories = async () => {
+    const res = await categoriesAPI.getAll();
+    setCategories(res.data);
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await menuItemsAPI.update(id, form);
+      navigate("/menu-items");
+    } catch (error) {
+      console.error("Error actualizando Ã­tem:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Editar Plato</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+          <Input
+            label="Nombre del plato"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Precio"
+            type="number"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            required
+          />
+
+          <Select
+            label="CategorÃ­a"
+            name="category_id"
+            value={form.category_id}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "", label: "-- Seleccione categorÃ­a --" },
+              ...categories.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/menu-items")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Actualizar Plato</Button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/MenuItems/MenuList.jsx
+================================================
+import { useEffect, useState } from "react";
+import menuItemsAPI from "../../api/menuItems";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
+
+export default function MenuList() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadMenuItems();
+  }, []);
+
+  const loadMenuItems = async () => {
+    try {
+      const res = await menuItemsAPI.getAll();
+      setItems(res.data);
+    } catch (error) {
+      console.error("Error cargando menÃº:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await menuItemsAPI.remove(deleteId);
+      setDeleteId(null);
+      loadMenuItems();
+    } catch (error) {
+      console.error("Error eliminando Ã­tem:", error);
+    }
+  };
+
+  if (loading) return <div>Cargando...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">MenÃº</h1>
+        <Button
+          onClick={() => navigate("/menu-items/create")}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <PlusCircle size={18} /> Nuevo Plato
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300 rounded">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-2 px-4 border">Nombre</th>
+              <th className="py-2 px-4 border">Precio</th>
+              <th className="py-2 px-4 border">CategorÃ­a</th>
+              <th className="py-2 px-4 border">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-4">
+                  No hay platos
+                </td>
+              </tr>
+            ) : (
+              items.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="py-2 px-4 border">{item.name}</td>
+                  <td className="py-2 px-4 border">${item.price}</td>
+                  <td className="py-2 px-4 border">{item.category?.name || "-"}</td>
+                  <td className="py-2 px-4 border flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/menu-items/edit/${item.id}`)}
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => setDeleteId(item.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal de confirmaciÃ³n */}
+      <Modal
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Confirmar eliminaciÃ³n"
+      >
+        <p>Â¿Seguro que deseas eliminar este plato?</p>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/Orders/index.jsx
+================================================
+import OrderList from "./OrderList";
+import OrderCreate from "./OrderCreate";
+import OrderEdit from "./OrderEdit";
+
+export { OrderList, OrderCreate, OrderEdit };
+
+
+
+================================================
+FILE: src/pages/Orders/OrderCreate.jsx
+================================================
+import { useEffect, useState } from "react";
+import ordersAPI from "../../api/orders";
+import tablesAPI from "../../api/tables";
+import customersAPI from "../../api/customers";
+import menuItemsAPI from "../../api/menuItems";
+import Select from "../../components/ui/Select";
+import Button from "../../components/ui/Button";
+import { useNavigate } from "react-router-dom";
+
+export default function OrderCreate() {
+  const navigate = useNavigate();
+
+  const [tables, setTables] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+
+  const [form, setForm] = useState({
+    table_id: "",
+    customer_id: "",
+    status: "pending",
+    items: [],
+  });
+
+  const loadData = async () => {
+    const t = await tablesAPI.getAll();
+    const c = await customersAPI.getAll();
+    const m = await menuItemsAPI.getAll();
+
+    setTables(t.data);
+    setCustomers(c.data);
+    setMenuItems(m.data);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const addItem = (id) => {
+    const item = menuItems.find((i) => i.id === Number(id));
+    if (!item) return;
+
+    setForm({
+      ...form,
+      items: [...form.items, { menu_item_id: item.id, name: item.name, price: item.price }],
+    });
+  };
+
+  const total = form.items.reduce((sum, item) => sum + Number(item.price), 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await ordersAPI.create({
+        ...form,
+        total_amount: total,
+      });
+      navigate("/orders");
+    } catch (error) {
+      console.error("Error creando orden:", error);
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Crear Orden</h1>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+        <Select
+          label="Mesa"
+          name="table_id"
+          required
+          onChange={(e) => setForm({ ...form, table_id: e.target.value })}
+          options={[
+            { value: "", label: "-- Selecciona --" },
+            ...tables.map((t) => ({ value: t.id, label: `Mesa ${t.number}` })),
+          ]}
+        />
+
+        <Select
+          label="Cliente"
+          name="customer_id"
+          required
+          onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
+          options={[
+            { value: "", label: "-- Selecciona --" },
+            ...customers.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
+
+        <Select
+          label="Agregar Item"
+          onChange={(e) => addItem(e.target.value)}
+          options={[
+            { value: "", label: "-- Selecciona un plato --" },
+            ...menuItems.map((m) => ({ value: m.id, label: `${m.name} - $${m.price}` })),
+          ]}
+        />
+
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Items</h2>
+          {form.items.length === 0 && <p className="text-gray-600">No hay items aÃºn.</p>}
+
+          <ul className="list-disc pl-6">
+            {form.items.map((i, index) => (
+              <li key={index}>
+                {i.name} â€” ${i.price}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="text-2xl font-bold">Total: ${total}</div>
+
+        <Button type="submit">Crear Orden</Button>
+      </form>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/Orders/OrderEdit.jsx
+================================================
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import ordersAPI from "../../api/orders";
+import tablesAPI from "../../api/tables";
+import customersAPI from "../../api/customers";
+import menuItemsAPI from "../../api/menuItems";
+import Select from "../../components/ui/Select";
+import Button from "../../components/ui/Button";
+
+export default function OrderEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [tables, setTables] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [form, setForm] = useState({
+    table_id: "",
+    customer_id: "",
+    status: "",
+    items: [],
+  });
+
+  const loadData = async () => {
+    try {
+      const [order, t, c, m] = await Promise.all([
+        ordersAPI.getById(id),
+        tablesAPI.getAll(),
+        customersAPI.getAll(),
+        menuItemsAPI.getAll(),
+      ]);
+
+      const orderData = order.data;
+
+      setTables(t.data);
+      setCustomers(c.data);
+      setMenuItems(m.data);
+
+      setForm({
+        table_id: orderData.table_id,
+        customer_id: orderData.customer_id,
+        status: orderData.status,
+        items: orderData.items.map((i) => ({
+          menu_item_id: i.menu_item_id,
+          name: i.menu_item.name,
+          price: i.menu_item.price,
+        })),
+      });
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const addItem = (id) => {
+    const item = menuItems.find((i) => i.id === Number(id));
+    if (!item) return;
+
+    setForm({
+      ...form,
+      items: [
+        ...form.items,
+        { menu_item_id: item.id, name: item.name, price: item.price },
+      ],
+    });
+  };
+
+  const removeItem = (index) => {
+    setForm({
+      ...form,
+      items: form.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const total = form.items.reduce((sum, i) => sum + Number(i.price), 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await ordersAPI.update(id, {
+        ...form,
+        total_amount: total,
+      });
+
+      navigate("/orders");
+    } catch (error) {
+      console.error("Error actualizando orden:", error);
+    }
+  };
+
+  if (loading) return <p className="p-6 text-lg">Cargando...</p>;
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Editar Orden #{id}</h1>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+        <Select
+          label="Mesa"
+          value={form.table_id}
+          onChange={(e) => setForm({ ...form, table_id: e.target.value })}
+          options={[
+            { value: "", label: "-- Selecciona --" },
+            ...tables.map((t) => ({ value: t.id, label: `Mesa ${t.number}` })),
+          ]}
+        />
+
+        <Select
+          label="Cliente"
+          value={form.customer_id}
+          onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
+          options={[
+            { value: "", label: "-- Selecciona --" },
+            ...customers.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
+
+        <Select
+          label="Estado"
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value })}
+          options={[
+            { value: "pending", label: "Pendiente" },
+            { value: "preparing", label: "Preparando" },
+            { value: "served", label: "Servido" },
+            { value: "completed", label: "Completado" },
+          ]}
+        />
+
+        {/* AGREGAR NUEVO ITEM */}
+        <Select
+          label="Agregar Item"
+          onChange={(e) => addItem(e.target.value)}
+          options={[
+            { value: "", label: "-- Selecciona un plato --" },
+            ...menuItems.map((m) => ({
+              value: m.id,
+              label: `${m.name} - $${m.price}`,
+            })),
+          ]}
+        />
+
+        {/* LISTA DE ITEMS */}
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Items</h2>
+
+          <ul className="flex flex-col gap-2">
+            {form.items.map((i, index) => (
+              <li
+                key={index}
+                className="flex justify-between items-center bg-gray-100 p-3 rounded"
+              >
+                <span>
+                  {i.name} â€” ${i.price}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  className="text-red-600 font-bold"
+                >
+                  X
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="text-2xl font-bold mt-2">
+          Total: ${total}
+        </div>
+
+        <Button type="submit">Actualizar Orden</Button>
+      </form>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/Orders/OrderList.jsx
+================================================
+import { useEffect, useState } from "react";
+import ordersAPI from "../../api/orders";
+import Button from "../../components/ui/Button";
+import { Link } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
+
+export default function OrderList() {
+  const [orders, setOrders] = useState([]);
+
+  const loadData = async () => {
+    try {
+      const res = await ordersAPI.getAll();
+      setOrders(res.data);
+    } catch (error) {
+      console.error("Error cargando Ã³rdenes:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleDelete = async (id) => {
+    if (!confirm("Â¿Eliminar la orden?")) return;
+
+    try {
+      await ordersAPI.remove(id);
+      loadData();
+    } catch (error) {
+      console.error("Error eliminando orden:", error);
+    }
+  };
+
+  return (
+    <div className="p-6">
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Ã“rdenes</h1>
+
+        <Link to="/orders/create">
+          <Button>
+            <div className="flex items-center gap-2">
+              <PlusCircle size={18} /> Crear Orden
+            </div>
+          </Button>
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="p-3 text-left">ID</th>
+              <th className="p-3 text-left">Mesa</th>
+              <th className="p-3 text-left">Cliente</th>
+              <th className="p-3 text-left">Total</th>
+              <th className="p-3 text-left">Estado</th>
+              <th className="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan="6" className="p-6 text-center text-gray-500">
+                  No hay Ã³rdenes registradas.
+                </td>
+              </tr>
+            )}
+
+            {orders.map((o) => (
+              <tr key={o.id} className="border-b hover:bg-gray-50">
+                <td className="p-3">{o.id}</td>
+                <td className="p-3">{o.table?.number}</td>
+                <td className="p-3">{o.customer?.name}</td>
+                <td className="p-3">${o.total_amount}</td>
+                <td className="p-3 capitalize">{o.status}</td>
+
+                <td className="p-3 flex justify-end gap-2">
+                  <Link to={`/orders/edit/${o.id}`}>
+                    <button className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg">
+                      <Pencil size={18} />
+                    </button>
+                  </Link>
+
+                  <button
+                    onClick={() => handleDelete(o.id)}
+                    className="p-2 bg-red-200 hover:bg-red-300 rounded-lg"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/pages/Tables/index.jsx
+================================================
+export { default as TableList } from "./TableList";
+export { default as TableCreate } from "./TableCreate";
+export { default as TableEdit } from "./TableEdit";
+
+
+================================================
+FILE: src/pages/Tables/TableCreate.jsx
+================================================
+import { useState } from "react";
+import tablesAPI from "../../api/tables";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate } from "react-router-dom";
+
+export default function TableCreate() {
+  const [form, setForm] = useState({
+    number: "",
+    capacity: "",
+    status: "disponible",
+  });
+
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await tablesAPI.create(form);
+      navigate("/tables");
+    } catch (error) {
+      console.error("Error creando mesa:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Agregar Nueva Mesa</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="NÃºmero de Mesa"
+            type="number"
+            name="number"
+            value={form.number}
+            onChange={handleChange}
+            placeholder="Ej: 1"
+            required
+          />
+
+          <Input
+            label="Capacidad (personas)"
+            type="number"
+            name="capacity"
+            value={form.capacity}
+            onChange={handleChange}
+            placeholder="Ej: 4"
+            required
+          />
+
+          <Select
+            label="Estado"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "disponible", label: "Disponible" },
+              { value: "ocupada", label: "Ocupada" },
+              { value: "reservada", label: "Reservada" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/tables")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Guardar Mesa</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Tables/TableEdit.jsx
+================================================
+import { useState, useEffect } from "react";
+import tablesAPI from "../../api/tables";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function TableEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    number: "",
+    capacity: "",
+    status: "disponible",
+  });
+
+  useEffect(() => {
+    loadTable();
+  }, []);
+
+  const loadTable = async () => {
+    try {
+      const res = await tablesAPI.getById(id);
+      setForm(res.data);
+    } catch (error) {
+      console.error("Error cargando mesa:", error);
+    }
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await tablesAPI.update(id, form);
+      navigate("/tables");
+    } catch (error) {
+      console.error("Error actualizando mesa:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Editar Mesa</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="NÃºmero de Mesa"
+            type="number"
+            name="number"
+            value={form.number}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Capacidad (personas)"
+            type="number"
+            name="capacity"
+            value={form.capacity}
+            onChange={handleChange}
+            required
+          />
+
+          <Select
+            label="Estado"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "disponible", label: "Disponible" },
+              { value: "ocupada", label: "Ocupada" },
+              { value: "reservada", label: "Reservada" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/tables")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Actualizar Mesa</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Tables/TableList.jsx
+================================================
+import { useEffect, useState } from "react";
+import tablesAPI from "../../api/tables";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
+
+export default function TableList() {
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadTables();
+  }, []);
+
+  const loadTables = async () => {
+    try {
+      const res = await tablesAPI.getAll();
+      setTables(res.data);
+    } catch (error) {
+      console.error("Error cargando mesas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await tablesAPI.remove(deleteId);
+      setDeleteId(null);
+      loadTables();
+    } catch (error) {
+      console.error("Error eliminando mesa:", error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      disponible: "bg-green-100 text-green-800",
+      ocupada: "bg-red-100 text-red-800",
+      reservada: "bg-yellow-100 text-yellow-800",
+    };
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || "bg-gray-100"}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  if (loading) return <div className="p-6">Cargando...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Mesas</h1>
+        <Button
+          onClick={() => navigate("/tables/create")}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <PlusCircle size={18} /> Nueva Mesa
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="p-3 text-left">NÃºmero</th>
+              <th className="p-3 text-left">Capacidad</th>
+              <th className="p-3 text-left">Estado</th>
+              <th className="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tables.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-4">
+                  No hay mesas
+                </td>
+              </tr>
+            ) : (
+              tables.map((table) => (
+                <tr key={table.id} className="hover:bg-gray-50 border-b">
+                  <td className="py-3 px-4">Mesa {table.number}</td>
+                  <td className="py-3 px-4">{table.capacity} personas</td>
+                  <td className="py-3 px-4">{getStatusBadge(table.status)}</td>
+                  <td className="py-3 px-4 flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/tables/edit/${table.id}`)}
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => setDeleteId(table.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal de confirmaciÃ³n */}
+      <Modal
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Confirmar eliminaciÃ³n"
+      >
+        <p>Â¿Seguro que deseas eliminar esta mesa?</p>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Users/index.jsx
+================================================
+export { default as UserList } from "./UserList";
+export { default as UserCreate } from "./UserCreate";
+export { default as UserEdit } from "./UserEdit";
+
+
+================================================
+FILE: src/pages/Users/UserCreate.jsx
+================================================
+import { useState } from "react";
+import usersAPI from "../../api/users";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate } from "react-router-dom";
+
+export default function UserCreate() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "mesero",
+  });
+
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await usersAPI.create(form);
+      navigate("/users");
+    } catch (error) {
+      console.error("Error creando usuario:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Agregar Nuevo Usuario</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="Nombre completo"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Ej: Juan PÃ©rez"
+            required
+          />
+
+          <Input
+            label="Email"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Ej: juan@restaurant.com"
+            required
+          />
+
+          <Input
+            label="ContraseÃ±a"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="MÃ­nimo 6 caracteres"
+            required
+          />
+
+          <Select
+            label="Rol"
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "admin", label: "Administrador" },
+              { value: "mesero", label: "Mesero" },
+              { value: "cocinero", label: "Cocinero" },
+              { value: "cajero", label: "Cajero" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/users")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Guardar Usuario</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Users/UserEdit.jsx
+================================================
+import { useState, useEffect } from "react";
+import usersAPI from "../../api/users";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function UserEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "mesero",
+  });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const res = await usersAPI.getById(id);
+      // No incluir password en el formulario por seguridad
+      setForm({
+        name: res.data.name,
+        email: res.data.email,
+        password: "",
+        role: res.data.role,
+      });
+    } catch (error) {
+      console.error("Error cargando usuario:", error);
+    }
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Si el password estÃ¡ vacÃ­o, no lo enviamos
+      const dataToSend = { ...form };
+      if (!dataToSend.password) {
+        delete dataToSend.password;
+      }
+
+      await usersAPI.update(id, dataToSend);
+      navigate("/users");
+    } catch (error) {
+      console.error("Error actualizando usuario:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Editar Usuario</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="Nombre completo"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Email"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Nueva ContraseÃ±a (dejar vacÃ­o para no cambiar)"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Opcional"
+          />
+
+          <Select
+            label="Rol"
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "admin", label: "Administrador" },
+              { value: "mesero", label: "Mesero" },
+              { value: "cocinero", label: "Cocinero" },
+              { value: "cajero", label: "Cajero" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/users")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Actualizar Usuario</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Users/UserList.jsx
+================================================
+import { useEffect, useState } from "react";
+import usersAPI from "../../api/users";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle, Mail, Shield } from "lucide-react";
+
+export default function UserList() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [deleteId, setDeleteId] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const loadUsers = async () => {
+        try {
+            const res = await usersAPI.getAll();
+            setUsers(res.data);
+        } catch (error) {
+            console.error("Error cargando usuarios:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await usersAPI.remove(deleteId);
+            setDeleteId(null);
+            loadUsers();
+        } catch (error) {
+            console.error("Error eliminando usuario:", error);
+        }
+    }; // INICIO DE LA FUNCIÃ“N CORREGIDA
+
+    const getRoleBadge = (role) => {
+        // 1. COMPROBACIÃ“N: Evita el error si 'role' no es una cadena (es null o undefined).
+        if (typeof role !== "string" || !role.trim()) {
+            return (
+                <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                    Sin Rol
+                </span>
+            );
+        }
+
+        // 2. LÃ“GICA NORMAL: Si llegamos aquÃ­, 'role' es una cadena vÃ¡lida.
+        const lowerCaseRole = role.toLowerCase();
+
+        const styles = {
+            admin: "bg-purple-100 text-purple-800",
+            mesero: "bg-blue-100 text-blue-800",
+            cocinero: "bg-orange-100 text-orange-800",
+            cajero: "bg-green-100 text-green-800",
+        };
+
+        // Formatea el nombre del rol (ej: 'admin' -> 'Admin')
+        const formattedRoleName =
+            lowerCaseRole.charAt(0).toUpperCase() + lowerCaseRole.slice(1);
+
+        // Usa el estilo mapeado o un estilo gris por defecto.
+        return (
+            <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    styles[lowerCaseRole] || "bg-gray-100 text-gray-800"
+                }`}
+            >
+                {formattedRoleName}
+            </span>
+        );
+    }; // FIN DE LA FUNCIÃ“N CORREGIDA
+    if (loading) return <div className="p-6">Cargando...</div>;
+
+    return (
+        <div className="p-6">
+            Â  Â  Â {" "}
+            <div className="flex justify-between items-center mb-6">
+                Â  Â  Â  Â  <h1 className="text-3xl font-bold">Usuarios</h1>Â  Â  Â  Â {" "}
+                <Button
+                    onClick={() => navigate("/users/create")}
+                    variant="primary"
+                    className="flex items-center gap-2"
+                >
+                    Â  Â  Â  Â  Â  <PlusCircle size={18} /> Nuevo Usuario Â  Â  Â  Â {" "}
+                </Button>
+                Â  Â  Â {" "}
+            </div>
+            Â  Â  Â {" "}
+            <div className="bg-white rounded-xl shadow overflow-hidden">
+                Â  Â  Â  Â {" "}
+                <table className="min-w-full">
+                    Â  Â  Â  Â  Â {" "}
+                    <thead className="bg-gray-100 border-b">
+                        Â  Â  Â  Â  Â  Â {" "}
+                        <tr>
+                            Â  Â  Â  Â  Â  Â  Â {" "}
+                            <th className="p-3 text-left">Nombre</th>Â  Â  Â  Â  Â  Â 
+                            Â  <th className="p-3 text-left">Email</th>Â  Â  Â  Â  Â 
+                            Â  Â  <th className="p-3 text-left">Rol</th>Â  Â  Â  Â  Â 
+                            Â  Â  <th className="p-3 text-right">Acciones</th>Â  Â 
+                            Â  Â  Â  Â {" "}
+                        </tr>
+                        Â  Â  Â  Â  Â {" "}
+                    </thead>
+                    Â  Â  Â  Â  Â {" "}
+                    <tbody>
+                        Â  Â  Â  Â  Â  Â {" "}
+                        {users.length === 0 ? (
+                            <tr>
+                                Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                <td colSpan={4} className="text-center py-4">
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â  No hay usuarios Â  Â  Â  Â  Â 
+                                    Â  Â  Â {" "}
+                                </td>
+                                Â  Â  Â  Â  Â  Â  Â {" "}
+                            </tr>
+                        ) : (
+                            users.map((user) => (
+                                <tr
+                                    key={user.id}
+                                    className="hover:bg-gray-50 border-b"
+                                >
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4 font-medium">
+                                        {user.name}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4">
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Mail size={16} />Â  Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â  {user.email}Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        </div>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4">
+                                        {getRoleBadge(user.role)}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4 flex justify-end gap-2">
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/users/edit/${user.id}`
+                                                )
+                                            }
+                                        >
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Pencil size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â {" "}
+                                        </Button>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <Button
+                                            variant="danger"
+                                            onClick={() => setDeleteId(user.id)}
+                                        >
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Trash2 size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â {" "}
+                                        </Button>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                </tr>
+                            ))
+                        )}
+                        Â  Â  Â  Â  Â {" "}
+                    </tbody>
+                    Â  Â  Â  Â {" "}
+                </table>
+                Â  Â  Â {" "}
+            </div>
+            Â  Â  Â  {/* Modal de confirmaciÃ³n */}Â  Â  Â {" "}  
+            <Modal
+                open={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                title="Confirmar eliminaciÃ³n"
+            >
+                Â  Â  Â  Â  <p>Â¿Seguro que deseas eliminar este usuario?</p>Â  Â  Â  Â {" "}
+                <div className="flex justify-end gap-3 mt-4">
+                    Â  Â  Â  Â  Â {" "}
+                    <Button
+                        variant="secondary"
+                        onClick={() => setDeleteId(null)}
+                    >
+                        Â  Â  Â  Â  Â  Â  Cancelar Â  Â  Â  Â  Â {" "}
+                    </Button>
+                    Â  Â  Â  Â  Â {" "}
+                    <Button variant="danger" onClick={confirmDelete}>
+                        Â  Â  Â  Â  Â  Â  Eliminar Â  Â  Â  Â  Â {" "}
+                    </Button>
+                    Â  Â  Â  Â {" "}
+                </div>
+                Â  Â  Â {" "}
+            </Modal>
+            Â  Â {" "}
+        </div>
+    );
+}
+
+
+
+================================================
+FILE: src/routes/routes.jsx
+================================================
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "../components/layout/AppLayout";
+import Dashboard from "../pages/Dashboard";
+
+// MENU ITEMS
+import { MenuList, MenuCreate, MenuEdit } from "../pages/MenuItems";
+
+// ORDERS
+import { OrderList, OrderCreate, OrderEdit } from "../pages/Orders";
+
+// TABLES
+import { TableList, TableCreate, TableEdit } from "../pages/Tables";
+
+// USERS
+import { UserList, UserCreate, UserEdit } from "../pages/Users";
+
+export default function AppRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+
+          {/* DASHBOARD */}
+          <Route path="/" element={<Dashboard />} />
+
+          {/* MENU ITEMS */}
+          <Route path="/menu-items" element={<MenuList />} />
+          <Route path="/menu-items/create" element={<MenuCreate />} />
+          <Route path="/menu-items/edit/:id" element={<MenuEdit />} />
+
+          {/* ORDERS */}
+          <Route path="/orders" element={<OrderList />} />
+          <Route path="/orders/create" element={<OrderCreate />} />
+          <Route path="/orders/edit/:id" element={<OrderEdit />} />
+
+          {/* TABLES */}
+          <Route path="/tables" element={<TableList />} />
+          <Route path="/tables/create" element={<TableCreate />} />
+          <Route path="/tables/edit/:id" element={<TableEdit />} />
+
+          {/* USERS */}
+          <Route path="/users" element={<UserList />} />
+          <Route path="/users/create" element={<UserCreate />} />
+          <Route path="/users/edit/:id" element={<UserEdit />} />
+
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+

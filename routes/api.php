@@ -14,3 +14,4 @@ Route::apiResource('categories', CategoryController::class);
 Route::apiResource('menu-items', MenuItemController::class);
 Route::apiResource('tables', TableController::class);
 Route::apiResource('users', UserController::class);
+
