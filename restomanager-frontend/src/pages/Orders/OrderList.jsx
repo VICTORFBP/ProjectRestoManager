@@ -6,6 +6,7 @@ import { Pencil, Trash2, PlusCircle } from "lucide-react";
 
 export default function OrderList() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
@@ -13,6 +14,8 @@ export default function OrderList() {
       setOrders(res.data);
     } catch (error) {
       console.error("Error cargando órdenes:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,9 +34,27 @@ export default function OrderList() {
     }
   };
 
+  const getStatusBadge = (status) => {
+    const styles = {
+      pendiente: "bg-yellow-100 text-yellow-800",
+      servido: "bg-blue-100 text-blue-800",
+      completado: "bg-green-100 text-green-800",
+      cancelado: "bg-red-100 text-red-800",
+    };
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || "bg-gray-100"}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
+
   return (
     <div className="p-6">
-
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Órdenes</h1>
 
@@ -71,10 +92,14 @@ export default function OrderList() {
             {orders.map((o) => (
               <tr key={o.id} className="border-b hover:bg-gray-50">
                 <td className="p-3">{o.id}</td>
-                <td className="p-3">{o.table?.number}</td>
-                <td className="p-3">{o.customer?.name}</td>
-                <td className="p-3">${o.total_amount}</td>
-                <td className="p-3 capitalize">{o.status}</td>
+                <td className="p-3">{o.table?.name || 'N/A'}</td>
+                <td className="p-3">
+                  {o.customer 
+                    ? `${o.customer.first_name} ${o.customer.last_name}` 
+                    : 'N/A'}
+                </td>
+                <td className="p-3">${Number(o.total || 0).toFixed(2)}</td>
+                <td className="p-3">{getStatusBadge(o.status)}</td>
 
                 <td className="p-3 flex justify-end gap-2">
                   <Link to={`/orders/edit/${o.id}`}>
@@ -90,13 +115,11 @@ export default function OrderList() {
                     <Trash2 size={18} />
                   </button>
                 </td>
-
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
     </div>
   );
 }

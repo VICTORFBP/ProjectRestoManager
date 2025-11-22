@@ -69,8 +69,8 @@ export default function TableList() {
         <table className="min-w-full">
           <thead className="bg-gray-100 border-b">
             <tr>
-              <th className="p-3 text-left">Número</th>
-              <th className="p-3 text-left">Capacidad</th>
+              <th className="p-3 text-left">Nombre</th>
+              <th className="p-3 text-left">Asientos</th>
               <th className="p-3 text-left">Estado</th>
               <th className="p-3 text-right">Acciones</th>
             </tr>
@@ -85,8 +85,8 @@ export default function TableList() {
             ) : (
               tables.map((table) => (
                 <tr key={table.id} className="hover:bg-gray-50 border-b">
-                  <td className="py-3 px-4">Mesa {table.number}</td>
-                  <td className="py-3 px-4">{table.capacity} personas</td>
+                  <td className="py-3 px-4">{table.name}</td>
+                  <td className="py-3 px-4">{table.seats} personas</td>
                   <td className="py-3 px-4">{getStatusBadge(table.status)}</td>
                   <td className="py-3 px-4 flex justify-end gap-2">
                     <Button
@@ -109,7 +109,6 @@ export default function TableList() {
         </table>
       </div>
 
-      {/* Modal de confirmación */}
       <Modal
         open={!!deleteId}
         onClose={() => setDeleteId(null)}

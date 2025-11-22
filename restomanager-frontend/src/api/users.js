@@ -6,6 +6,9 @@ const usersAPI = {
   create: (data) => api.post("/users", data),
   update: (id, data) => api.put(`/users/${id}`, data),
   remove: (id) => api.delete(`/users/${id}`),
+  
+  // Obtener roles para el formulario
+  getRoles: () => api.get("/roles")
 };
 
 export default usersAPI;

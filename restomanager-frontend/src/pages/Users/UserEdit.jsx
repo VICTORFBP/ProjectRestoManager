@@ -10,39 +10,65 @@ export default function UserEdit() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
-    role: "mesero",
+    role_id: "",
+    is_active: true
   });
+
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadUser();
+    loadRoles();
   }, []);
 
   const loadUser = async () => {
     try {
       const res = await usersAPI.getById(id);
-      // No incluir password en el formulario por seguridad
       setForm({
-        name: res.data.name,
+        username: res.data.username,
+        first_name: res.data.first_name,
+        last_name: res.data.last_name,
         email: res.data.email,
         password: "",
-        role: res.data.role,
+        role_id: res.data.role_id,
+        is_active: res.data.is_active
       });
     } catch (error) {
       console.error("Error cargando usuario:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const loadRoles = async () => {
+    try {
+      const res = await usersAPI.getRoles();
+      setRoles(res.data);
+    } catch (error) {
+      console.error("Error cargando roles:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ 
+      ...form, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Si el password está vacío, no lo enviamos
       const dataToSend = { ...form };
+      
+      // Si el password está vacío, no lo enviamos
       if (!dataToSend.password) {
         delete dataToSend.password;
       }
@@ -51,8 +77,13 @@ export default function UserEdit() {
       navigate("/users");
     } catch (error) {
       console.error("Error actualizando usuario:", error);
+      alert("Error al actualizar usuario. Verifica los datos.");
     }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -61,9 +92,25 @@ export default function UserEdit() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Nombre completo"
-            name="name"
-            value={form.name}
+            label="Username"
+            name="username"
+            value={form.username}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Nombre"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Apellido"
+            name="last_name"
+            value={form.last_name}
             onChange={handleChange}
             required
           />
@@ -88,17 +135,26 @@ export default function UserEdit() {
 
           <Select
             label="Rol"
-            name="role"
-            value={form.role}
+            name="role_id"
+            value={form.role_id}
             onChange={handleChange}
             required
             options={[
-              { value: "admin", label: "Administrador" },
-              { value: "mesero", label: "Mesero" },
-              { value: "cocinero", label: "Cocinero" },
-              { value: "cajero", label: "Cajero" },
+              { value: "", label: "-- Seleccione un rol --" },
+              ...roles.map((r) => ({ value: r.id, label: r.name })),
             ]}
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <label className="font-medium">Usuario activo</label>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Button

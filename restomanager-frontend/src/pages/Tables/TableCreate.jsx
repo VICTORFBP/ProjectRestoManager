@@ -7,8 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function TableCreate() {
   const [form, setForm] = useState({
-    number: "",
-    capacity: "",
+    name: "",
+    seats: "",
     status: "disponible",
   });
 
@@ -24,6 +24,7 @@ export default function TableCreate() {
       navigate("/tables");
     } catch (error) {
       console.error("Error creando mesa:", error);
+      alert("Error al crear mesa. Verifica los datos.");
     }
   };
 
@@ -34,22 +35,22 @@ export default function TableCreate() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Número de Mesa"
-            type="number"
-            name="number"
-            value={form.number}
+            label="Nombre de la Mesa"
+            name="name"
+            value={form.name}
             onChange={handleChange}
-            placeholder="Ej: 1"
+            placeholder="Ej: Mesa 1"
             required
           />
 
           <Input
-            label="Capacidad (personas)"
+            label="Asientos (personas)"
             type="number"
-            name="capacity"
-            value={form.capacity}
+            name="seats"
+            value={form.seats}
             onChange={handleChange}
             placeholder="Ej: 4"
+            min="1"
             required
           />
 

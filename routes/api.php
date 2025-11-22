@@ -7,6 +7,7 @@ use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 
 Route::apiResource('orders', OrderController::class);
 Route::apiResource('customers', CustomerController::class);
@@ -14,4 +15,4 @@ Route::apiResource('categories', CategoryController::class);
 Route::apiResource('menu-items', MenuItemController::class);
 Route::apiResource('tables', TableController::class);
 Route::apiResource('users', UserController::class);
-
+Route::get('roles', [RoleController::class, 'index']);

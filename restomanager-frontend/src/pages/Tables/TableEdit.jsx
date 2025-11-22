@@ -10,10 +10,12 @@ export default function TableEdit() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    number: "",
-    capacity: "",
+    name: "",
+    seats: "",
     status: "disponible",
   });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTable();
@@ -25,6 +27,8 @@ export default function TableEdit() {
       setForm(res.data);
     } catch (error) {
       console.error("Error cargando mesa:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,8 +42,13 @@ export default function TableEdit() {
       navigate("/tables");
     } catch (error) {
       console.error("Error actualizando mesa:", error);
+      alert("Error al actualizar mesa. Verifica los datos.");
     }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -48,20 +57,20 @@ export default function TableEdit() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Número de Mesa"
-            type="number"
-            name="number"
-            value={form.number}
+            label="Nombre de la Mesa"
+            name="name"
+            value={form.name}
             onChange={handleChange}
             required
           />
 
           <Input
-            label="Capacidad (personas)"
+            label="Asientos (personas)"
             type="number"
-            name="capacity"
-            value={form.capacity}
+            name="seats"
+            value={form.seats}
             onChange={handleChange}
+            min="1"
             required
           />
 

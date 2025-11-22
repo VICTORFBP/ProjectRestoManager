@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import usersAPI from "../../api/users";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -7,16 +7,38 @@ import { useNavigate } from "react-router-dom";
 
 export default function UserCreate() {
   const [form, setForm] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
-    role: "mesero",
+    role_id: "",
+    is_active: true
   });
 
+  const [roles, setRoles] = useState([]);
   const navigate = useNavigate();
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
+  const loadRoles = async () => {
+    try {
+      const res = await usersAPI.getRoles();
+      setRoles(res.data);
+    } catch (error) {
+      console.error("Error cargando roles:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ 
+      ...form, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,6 +47,7 @@ export default function UserCreate() {
       navigate("/users");
     } catch (error) {
       console.error("Error creando usuario:", error);
+      alert("Error al crear usuario. Verifica los datos.");
     }
   };
 
@@ -35,11 +58,29 @@ export default function UserCreate() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Nombre completo"
-            name="name"
-            value={form.name}
+            label="Username"
+            name="username"
+            value={form.username}
             onChange={handleChange}
-            placeholder="Ej: Juan Pérez"
+            placeholder="Ej: juan.perez"
+            required
+          />
+
+          <Input
+            label="Nombre"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            placeholder="Ej: Juan"
+            required
+          />
+
+          <Input
+            label="Apellido"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+            placeholder="Ej: Pérez"
             required
           />
 
@@ -65,17 +106,26 @@ export default function UserCreate() {
 
           <Select
             label="Rol"
-            name="role"
-            value={form.role}
+            name="role_id"
+            value={form.role_id}
             onChange={handleChange}
             required
             options={[
-              { value: "admin", label: "Administrador" },
-              { value: "mesero", label: "Mesero" },
-              { value: "cocinero", label: "Cocinero" },
-              { value: "cajero", label: "Cajero" },
+              { value: "", label: "-- Seleccione un rol --" },
+              ...roles.map((r) => ({ value: r.id, label: r.name })),
             ]}
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <label className="font-medium">Usuario activo</label>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Button
