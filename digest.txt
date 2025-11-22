@@ -1,5 +1,5 @@
 Directory structure:
-└── restomanager/
+└── ProjectRestoManager/
     ├── README.md
     ├── artisan
     ├── composer.json
@@ -34,9 +34,7 @@ Directory structure:
     │       └── RouteServiceProvider.php
     ├── bootstrap/
     │   ├── app.php
-    │   ├── providers.php
-    │   └── cache/
-    │       └── .gitignore
+    │   └── providers.php
     ├── config/
     │   ├── app.php
     │   ├── auth.php
@@ -139,11 +137,21 @@ Directory structure:
     │       │   │   ├── MenuCreate.jsx
     │       │   │   ├── MenuEdit.jsx
     │       │   │   └── MenuList.jsx
-    │       │   └── Orders/
+    │       │   ├── Orders/
+    │       │   │   ├── index.jsx
+    │       │   │   ├── OrderCreate.jsx
+    │       │   │   ├── OrderEdit.jsx
+    │       │   │   └── OrderList.jsx
+    │       │   ├── Tables/
+    │       │   │   ├── index.jsx
+    │       │   │   ├── TableCreate.jsx
+    │       │   │   ├── TableEdit.jsx
+    │       │   │   └── TableList.jsx
+    │       │   └── Users/
     │       │       ├── index.jsx
-    │       │       ├── OrderCreate.jsx
-    │       │       ├── OrderEdit.jsx
-    │       │       └── OrderList.jsx
+    │       │       ├── UserCreate.jsx
+    │       │       ├── UserEdit.jsx
+    │       │       └── UserList.jsx
     │       └── routes/
     │           └── routes.jsx
     ├── routes/
@@ -151,8 +159,11 @@ Directory structure:
     │   ├── console.php
     │   └── web.php
     ├── storage/
-    │   └── logs/
-    │       └── .gitignore
+    │   └── framework/
+    │       ├── cache/
+    │       │   └── .gitignore
+    │       └── testing/
+    │           └── .gitignore
     └── tests/
         ├── TestCase.php
         ├── Feature/
@@ -1297,14 +1308,6 @@ FILE: bootstrap/providers.php
 return [
     App\Providers\AppServiceProvider::class,
 ];
-
-
-
-================================================
-FILE: bootstrap/cache/.gitignore
-================================================
-*
-!.gitignore
 
 
 
@@ -4218,79 +4221,7 @@ export default App;
 ================================================
 FILE: restomanager-frontend/src/index.css
 ================================================
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
+[Binary file]
 
 
 ================================================
@@ -5753,17 +5684,798 @@ export default function OrderList() {
 
 
 ================================================
+FILE: restomanager-frontend/src/pages/Tables/index.jsx
+================================================
+export { default as TableList } from "./TableList";
+export { default as TableCreate } from "./TableCreate";
+export { default as TableEdit } from "./TableEdit";
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Tables/TableCreate.jsx
+================================================
+import { useState } from "react";
+import tablesAPI from "../../api/tables";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate } from "react-router-dom";
+
+export default function TableCreate() {
+  const [form, setForm] = useState({
+    number: "",
+    capacity: "",
+    status: "disponible",
+  });
+
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await tablesAPI.create(form);
+      navigate("/tables");
+    } catch (error) {
+      console.error("Error creando mesa:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Agregar Nueva Mesa</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="NÃºmero de Mesa"
+            type="number"
+            name="number"
+            value={form.number}
+            onChange={handleChange}
+            placeholder="Ej: 1"
+            required
+          />
+
+          <Input
+            label="Capacidad (personas)"
+            type="number"
+            name="capacity"
+            value={form.capacity}
+            onChange={handleChange}
+            placeholder="Ej: 4"
+            required
+          />
+
+          <Select
+            label="Estado"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "disponible", label: "Disponible" },
+              { value: "ocupada", label: "Ocupada" },
+              { value: "reservada", label: "Reservada" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/tables")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Guardar Mesa</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Tables/TableEdit.jsx
+================================================
+import { useState, useEffect } from "react";
+import tablesAPI from "../../api/tables";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function TableEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    number: "",
+    capacity: "",
+    status: "disponible",
+  });
+
+  useEffect(() => {
+    loadTable();
+  }, []);
+
+  const loadTable = async () => {
+    try {
+      const res = await tablesAPI.getById(id);
+      setForm(res.data);
+    } catch (error) {
+      console.error("Error cargando mesa:", error);
+    }
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await tablesAPI.update(id, form);
+      navigate("/tables");
+    } catch (error) {
+      console.error("Error actualizando mesa:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Editar Mesa</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="NÃºmero de Mesa"
+            type="number"
+            name="number"
+            value={form.number}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Capacidad (personas)"
+            type="number"
+            name="capacity"
+            value={form.capacity}
+            onChange={handleChange}
+            required
+          />
+
+          <Select
+            label="Estado"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "disponible", label: "Disponible" },
+              { value: "ocupada", label: "Ocupada" },
+              { value: "reservada", label: "Reservada" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/tables")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Actualizar Mesa</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Tables/TableList.jsx
+================================================
+import { useEffect, useState } from "react";
+import tablesAPI from "../../api/tables";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
+
+export default function TableList() {
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadTables();
+  }, []);
+
+  const loadTables = async () => {
+    try {
+      const res = await tablesAPI.getAll();
+      setTables(res.data);
+    } catch (error) {
+      console.error("Error cargando mesas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await tablesAPI.remove(deleteId);
+      setDeleteId(null);
+      loadTables();
+    } catch (error) {
+      console.error("Error eliminando mesa:", error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      disponible: "bg-green-100 text-green-800",
+      ocupada: "bg-red-100 text-red-800",
+      reservada: "bg-yellow-100 text-yellow-800",
+    };
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || "bg-gray-100"}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  if (loading) return <div className="p-6">Cargando...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Mesas</h1>
+        <Button
+          onClick={() => navigate("/tables/create")}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <PlusCircle size={18} /> Nueva Mesa
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="p-3 text-left">NÃºmero</th>
+              <th className="p-3 text-left">Capacidad</th>
+              <th className="p-3 text-left">Estado</th>
+              <th className="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tables.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-4">
+                  No hay mesas
+                </td>
+              </tr>
+            ) : (
+              tables.map((table) => (
+                <tr key={table.id} className="hover:bg-gray-50 border-b">
+                  <td className="py-3 px-4">Mesa {table.number}</td>
+                  <td className="py-3 px-4">{table.capacity} personas</td>
+                  <td className="py-3 px-4">{getStatusBadge(table.status)}</td>
+                  <td className="py-3 px-4 flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/tables/edit/${table.id}`)}
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => setDeleteId(table.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal de confirmaciÃ³n */}
+      <Modal
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Confirmar eliminaciÃ³n"
+      >
+        <p>Â¿Seguro que deseas eliminar esta mesa?</p>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Users/index.jsx
+================================================
+export { default as UserList } from "./UserList";
+export { default as UserCreate } from "./UserCreate";
+export { default as UserEdit } from "./UserEdit";
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Users/UserCreate.jsx
+================================================
+import { useState } from "react";
+import usersAPI from "../../api/users";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate } from "react-router-dom";
+
+export default function UserCreate() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "mesero",
+  });
+
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await usersAPI.create(form);
+      navigate("/users");
+    } catch (error) {
+      console.error("Error creando usuario:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Agregar Nuevo Usuario</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="Nombre completo"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Ej: Juan PÃ©rez"
+            required
+          />
+
+          <Input
+            label="Email"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Ej: juan@restaurant.com"
+            required
+          />
+
+          <Input
+            label="ContraseÃ±a"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="MÃ­nimo 6 caracteres"
+            required
+          />
+
+          <Select
+            label="Rol"
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "admin", label: "Administrador" },
+              { value: "mesero", label: "Mesero" },
+              { value: "cocinero", label: "Cocinero" },
+              { value: "cajero", label: "Cajero" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/users")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Guardar Usuario</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Users/UserEdit.jsx
+================================================
+import { useState, useEffect } from "react";
+import usersAPI from "../../api/users";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import Select from "../../components/ui/Select";
+import { useNavigate, useParams } from "react-router-dom";
+
+export default function UserEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "mesero",
+  });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const res = await usersAPI.getById(id);
+      // No incluir password en el formulario por seguridad
+      setForm({
+        name: res.data.name,
+        email: res.data.email,
+        password: "",
+        role: res.data.role,
+      });
+    } catch (error) {
+      console.error("Error cargando usuario:", error);
+    }
+  };
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Si el password estÃ¡ vacÃ­o, no lo enviamos
+      const dataToSend = { ...form };
+      if (!dataToSend.password) {
+        delete dataToSend.password;
+      }
+
+      await usersAPI.update(id, dataToSend);
+      navigate("/users");
+    } catch (error) {
+      console.error("Error actualizando usuario:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold mb-6">Editar Usuario</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Input
+            label="Nombre completo"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Email"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Nueva ContraseÃ±a (dejar vacÃ­o para no cambiar)"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Opcional"
+          />
+
+          <Select
+            label="Rol"
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            required
+            options={[
+              { value: "admin", label: "Administrador" },
+              { value: "mesero", label: "Mesero" },
+              { value: "cocinero", label: "Cocinero" },
+              { value: "cajero", label: "Cajero" },
+            ]}
+          />
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/users")}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit">Actualizar Usuario</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: restomanager-frontend/src/pages/Users/UserList.jsx
+================================================
+import { useEffect, useState } from "react";
+import usersAPI from "../../api/users";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, PlusCircle, Mail, Shield } from "lucide-react";
+
+export default function UserList() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [deleteId, setDeleteId] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const loadUsers = async () => {
+        try {
+            const res = await usersAPI.getAll();
+            setUsers(res.data);
+        } catch (error) {
+            console.error("Error cargando usuarios:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await usersAPI.remove(deleteId);
+            setDeleteId(null);
+            loadUsers();
+        } catch (error) {
+            console.error("Error eliminando usuario:", error);
+        }
+    }; // INICIO DE LA FUNCIÃ“N CORREGIDA
+
+    const getRoleBadge = (role) => {
+        // 1. COMPROBACIÃ“N: Evita el error si 'role' no es una cadena (es null o undefined).
+        if (typeof role !== "string" || !role.trim()) {
+            return (
+                <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                    Sin Rol
+                </span>
+            );
+        }
+
+        // 2. LÃ“GICA NORMAL: Si llegamos aquÃ­, 'role' es una cadena vÃ¡lida.
+        const lowerCaseRole = role.toLowerCase();
+
+        const styles = {
+            admin: "bg-purple-100 text-purple-800",
+            mesero: "bg-blue-100 text-blue-800",
+            cocinero: "bg-orange-100 text-orange-800",
+            cajero: "bg-green-100 text-green-800",
+        };
+
+        // Formatea el nombre del rol (ej: 'admin' -> 'Admin')
+        const formattedRoleName =
+            lowerCaseRole.charAt(0).toUpperCase() + lowerCaseRole.slice(1);
+
+        // Usa el estilo mapeado o un estilo gris por defecto.
+        return (
+            <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    styles[lowerCaseRole] || "bg-gray-100 text-gray-800"
+                }`}
+            >
+                {formattedRoleName}
+            </span>
+        );
+    }; // FIN DE LA FUNCIÃ“N CORREGIDA
+    if (loading) return <div className="p-6">Cargando...</div>;
+
+    return (
+        <div className="p-6">
+            Â  Â  Â {" "}
+            <div className="flex justify-between items-center mb-6">
+                Â  Â  Â  Â  <h1 className="text-3xl font-bold">Usuarios</h1>Â  Â  Â  Â {" "}
+                <Button
+                    onClick={() => navigate("/users/create")}
+                    variant="primary"
+                    className="flex items-center gap-2"
+                >
+                    Â  Â  Â  Â  Â  <PlusCircle size={18} /> Nuevo Usuario Â  Â  Â  Â {" "}
+                </Button>
+                Â  Â  Â {" "}
+            </div>
+            Â  Â  Â {" "}
+            <div className="bg-white rounded-xl shadow overflow-hidden">
+                Â  Â  Â  Â {" "}
+                <table className="min-w-full">
+                    Â  Â  Â  Â  Â {" "}
+                    <thead className="bg-gray-100 border-b">
+                        Â  Â  Â  Â  Â  Â {" "}
+                        <tr>
+                            Â  Â  Â  Â  Â  Â  Â {" "}
+                            <th className="p-3 text-left">Nombre</th>Â  Â  Â  Â  Â  Â 
+                            Â  <th className="p-3 text-left">Email</th>Â  Â  Â  Â  Â 
+                            Â  Â  <th className="p-3 text-left">Rol</th>Â  Â  Â  Â  Â 
+                            Â  Â  <th className="p-3 text-right">Acciones</th>Â  Â 
+                            Â  Â  Â  Â {" "}
+                        </tr>
+                        Â  Â  Â  Â  Â {" "}
+                    </thead>
+                    Â  Â  Â  Â  Â {" "}
+                    <tbody>
+                        Â  Â  Â  Â  Â  Â {" "}
+                        {users.length === 0 ? (
+                            <tr>
+                                Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                <td colSpan={4} className="text-center py-4">
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â  No hay usuarios Â  Â  Â  Â  Â 
+                                    Â  Â  Â {" "}
+                                </td>
+                                Â  Â  Â  Â  Â  Â  Â {" "}
+                            </tr>
+                        ) : (
+                            users.map((user) => (
+                                <tr
+                                    key={user.id}
+                                    className="hover:bg-gray-50 border-b"
+                                >
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4 font-medium">
+                                        {user.name}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4">
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Mail size={16} />Â  Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â  {user.email}Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        </div>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4">
+                                        {getRoleBadge(user.role)}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    <td className="py-3 px-4 flex justify-end gap-2">
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/users/edit/${user.id}`
+                                                )
+                                            }
+                                        >
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Pencil size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â {" "}
+                                        </Button>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                        <Button
+                                            variant="danger"
+                                            onClick={() => setDeleteId(user.id)}
+                                        >
+                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                            <Trash2 size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
+                                            Â  Â {" "}
+                                        </Button>
+                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                    </td>
+                                    Â  Â  Â  Â  Â  Â  Â  Â {" "}
+                                </tr>
+                            ))
+                        )}
+                        Â  Â  Â  Â  Â {" "}
+                    </tbody>
+                    Â  Â  Â  Â {" "}
+                </table>
+                Â  Â  Â {" "}
+            </div>
+            Â  Â  Â  {/* Modal de confirmaciÃ³n */}Â  Â  Â {" "}  
+            <Modal
+                open={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                title="Confirmar eliminaciÃ³n"
+            >
+                Â  Â  Â  Â  <p>Â¿Seguro que deseas eliminar este usuario?</p>Â  Â  Â  Â {" "}
+                <div className="flex justify-end gap-3 mt-4">
+                    Â  Â  Â  Â  Â {" "}
+                    <Button
+                        variant="secondary"
+                        onClick={() => setDeleteId(null)}
+                    >
+                        Â  Â  Â  Â  Â  Â  Cancelar Â  Â  Â  Â  Â {" "}
+                    </Button>
+                    Â  Â  Â  Â  Â {" "}
+                    <Button variant="danger" onClick={confirmDelete}>
+                        Â  Â  Â  Â  Â  Â  Eliminar Â  Â  Â  Â  Â {" "}
+                    </Button>
+                    Â  Â  Â  Â {" "}
+                </div>
+                Â  Â  Â {" "}
+            </Modal>
+            Â  Â {" "}
+        </div>
+    );
+}
+
+
+
+================================================
 FILE: restomanager-frontend/src/routes/routes.jsx
 ================================================
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import Dashboard from "../pages/Dashboard";
 
-// MENU ITEMS (importaciÃ³n desde index.jsx)
+// MENU ITEMS
 import { MenuList, MenuCreate, MenuEdit } from "../pages/MenuItems";
 
-// ORDERS (importaciÃ³n desde index.jsx)
+// ORDERS
 import { OrderList, OrderCreate, OrderEdit } from "../pages/Orders";
+
+// TABLES
+import { TableList, TableCreate, TableEdit } from "../pages/Tables";
+
+// USERS
+import { UserList, UserCreate, UserEdit } from "../pages/Users";
 
 export default function AppRoutes() {
   return (
@@ -5784,12 +6496,21 @@ export default function AppRoutes() {
           <Route path="/orders/create" element={<OrderCreate />} />
           <Route path="/orders/edit/:id" element={<OrderEdit />} />
 
+          {/* TABLES */}
+          <Route path="/tables" element={<TableList />} />
+          <Route path="/tables/create" element={<TableCreate />} />
+          <Route path="/tables/edit/:id" element={<TableEdit />} />
+
+          {/* USERS */}
+          <Route path="/users" element={<UserList />} />
+          <Route path="/users/create" element={<UserCreate />} />
+          <Route path="/users/edit/:id" element={<UserEdit />} />
+
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
-
 
 
 ================================================
@@ -5843,7 +6564,16 @@ Route::get('/', function () {
 
 
 ================================================
-FILE: storage/logs/.gitignore
+FILE: storage/framework/cache/.gitignore
+================================================
+*
+!data/
+!.gitignore
+
+
+
+================================================
+FILE: storage/framework/testing/.gitignore
 ================================================
 *
 !.gitignore
