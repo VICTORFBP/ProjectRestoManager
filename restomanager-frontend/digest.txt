@@ -21,6 +21,8 @@ Directory structure:
         │   ├── tables.js
         │   └── users.js
         ├── components/
+        │   ├── auth/
+        │   │   └── ProtectedRoute.jsx
         │   ├── dashboard/
         │   │   ├── Occupancy.jsx
         │   │   ├── OrdersChart.jsx
@@ -41,6 +43,11 @@ Directory structure:
         │       └── Select.jsx
         ├── pages/
         │   ├── Dashboard.jsx
+        │   ├── Auth/
+        │   │   ├── Login.jsx
+        │   │   └── Register.jsx
+        │   ├── Cliente/
+        │   │   └── MenuCliente.jsx
         │   ├── MenuItems/
         │   │   ├── index.jsx
         │   │   ├── MenuCreate.jsx
@@ -346,7 +353,6 @@ createRoot(document.getElementById("root")).render(
 );
 
 
-
 ================================================
 FILE: src/api/axios.js
 ================================================
@@ -461,10 +467,50 @@ const usersAPI = {
   create: (data) => api.post("/users", data),
   update: (id, data) => api.put(`/users/${id}`, data),
   remove: (id) => api.delete(`/users/${id}`),
+  
+  // Obtener roles para el formulario
+  getRoles: () => api.get("/roles")
 };
 
 export default usersAPI;
 
+
+================================================
+FILE: src/components/auth/ProtectedRoute.jsx
+================================================
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Loader from "../ui/Loader";
+
+export default function ProtectedRoute({ children, roles = [] }) {
+  const { user, loading, hasRole } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si se especifican roles, verificar que el usuario tenga uno de ellos
+  if (roles.length > 0 && !hasRole(...roles)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h1>
+          <p className="text-gray-600">No tienes permisos para acceder a esta pÃ¡gina.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+}
 
 
 ================================================
@@ -589,10 +635,19 @@ export default function TopItems({ items = [] }) {
 ================================================
 FILE: src/components/layout/AppLayout.jsx
 ================================================
-import { Outlet, NavLink } from "react-router-dom";
-import { Home, Utensils, ListOrdered, Table2, Users } from "lucide-react";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Home, Utensils, ListOrdered, Table2, Users, LogOut, User } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AppLayout() {
+  const { user, logout, isAdmin, isMesero } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-100">
 
@@ -603,12 +658,35 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 p-4 flex flex-col gap-1">
-          <NavItem to="/" label="Dashboard" icon={<Home size={18} />} />
-          <NavItem to="/menu-items" label="MenÃº" icon={<Utensils size={18} />} />
-          <NavItem to="/orders" label="Pedidos" icon={<ListOrdered size={18} />} />
-          <NavItem to="/tables" label="Mesas" icon={<Table2 size={18} />} />
-          <NavItem to="/users" label="Usuarios" icon={<Users size={18} />} />
+          <NavItem to="/" label="Dashboard" icon={<Home size={18} />} show={isAdmin()} />
+          <NavItem to="/menu-items" label="MenÃº" icon={<Utensils size={18} />} show={isAdmin()} />
+          <NavItem to="/orders" label="Pedidos" icon={<ListOrdered size={18} />} show={isAdmin() || isMesero()} />
+          <NavItem to="/tables" label="Mesas" icon={<Table2 size={18} />} show={isAdmin()} />
+          <NavItem to="/users" label="Usuarios" icon={<Users size={18} />} show={isAdmin()} />
+          
+          {/* Para clientes */}
+          <NavItem to="/menu" label="Ver MenÃº" icon={<Utensils size={18} />} show={!isAdmin() && !isMesero()} />
+          <NavItem to="/my-orders" label="Mis Pedidos" icon={<ListOrdered size={18} />} show={!isAdmin() && !isMesero()} />
         </nav>
+
+        {/* User info + Logout */}
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex items-center gap-3 mb-3 text-sm">
+            <User size={18} />
+            <div>
+              <div className="font-medium">{user?.first_name} {user?.last_name}</div>
+              <div className="text-xs text-gray-400">{user?.role?.name}</div>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition"
+          >
+            <LogOut size={18} />
+            <span>Cerrar SesiÃ³n</span>
+          </button>
+        </div>
       </aside>
 
       {/* CONTENIDO */}
@@ -619,7 +697,9 @@ export default function AppLayout() {
   );
 }
 
-function NavItem({ to, label, icon }) {
+function NavItem({ to, label, icon, show = true }) {
+  if (!show) return null;
+  
   return (
     <NavLink
       to={to}
@@ -636,7 +716,6 @@ function NavItem({ to, label, icon }) {
     </NavLink>
   );
 }
-
 
 
 ================================================
@@ -1010,6 +1089,234 @@ export default function Dashboard() {
 
 
 ================================================
+FILE: src/pages/Auth/Login.jsx
+================================================
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import { LogIn, Mail, Lock } from "lucide-react";
+
+export default function Login() {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const user = await login(form.email, form.password);
+      
+      // Redirigir segÃºn el rol
+      if (user.role.name === "Administrador") {
+        navigate("/dashboard");
+      } else if (user.role.name === "Mesero") {
+        navigate("/orders");
+      } else {
+        navigate("/menu");
+      }
+    } catch (err) {
+      console.error("Error en login:", err);
+      setError(err.response?.data?.message || "Credenciales incorrectas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+            <LogIn className="w-8 h-8 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800">Iniciar SesiÃ³n</h1>
+          <p className="text-gray-600 mt-2">Bienvenido a RestoManager</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Mail className="inline w-4 h-4 mr-2" />
+              Correo electrÃ³nico
+            </label>
+            <Input
+              type="email"
+              placeholder="usuario@ejemplo.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Lock className="inline w-4 h-4 mr-2" />
+              ContraseÃ±a
+            </label>
+            <Input
+              type="password"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              className="w-full"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+          >
+            {loading ? "Iniciando..." : "Iniciar SesiÃ³n"}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Â¿No tienes cuenta?{" "}
+            <Link to="/register" className="text-blue-600 font-semibold hover:underline">
+              RegÃ­strate aquÃ­
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Auth/Register.jsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: src/pages/Cliente/MenuCliente.jsx
+================================================
+import { useEffect, useState } from "react";
+import menuItemsAPI from "../../api/menuItems";
+import { ShoppingCart, ChefHat } from "lucide-react";
+
+export default function MenuCliente() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  useEffect(() => {
+    loadMenu();
+  }, []);
+
+  const loadMenu = async () => {
+    try {
+      const res = await menuItemsAPI.getAll();
+      setItems(res.data);
+    } catch (error) {
+      console.error("Error cargando menÃº:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = ["all", ...new Set(items.map(i => i.category?.name).filter(Boolean))];
+
+  const filteredItems = selectedCategory === "all" 
+    ? items 
+    : items.filter(i => i.category?.name === selectedCategory);
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando menÃº...</div>;
+  }
+
+  return (
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+          <ChefHat className="text-orange-500" size={40} />
+          Nuestro MenÃº
+        </h1>
+        <p className="text-gray-600">Descubre nuestros deliciosos platillos</p>
+      </div>
+
+      {/* Filtro de categorÃ­as */}
+      <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition ${
+              selectedCategory === cat
+                ? "bg-orange-500 text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {cat === "all" ? "Todos" : cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid de items */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredItems.map(item => (
+          <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
+            <div className="h-48 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+              <ChefHat size={64} className="text-white opacity-50" />
+            </div>
+            
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
+                <span className="text-2xl font-bold text-orange-600">
+                  ${Number(item.price).toFixed(2)}
+                </span>
+              </div>
+              
+              <p className="text-gray-600 text-sm mb-3">
+                {item.description || "Delicioso platillo preparado con los mejores ingredientes"}
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+                  {item.category?.name || "General"}
+                </span>
+                
+                <button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition">
+                  <ShoppingCart size={18} />
+                  Ordenar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filteredItems.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No hay platillos disponibles en esta categorÃ­a
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+================================================
 FILE: src/pages/MenuItems/index.jsx
 ================================================
 export { default as MenuList } from "./MenuList";
@@ -1374,121 +1681,264 @@ import ordersAPI from "../../api/orders";
 import tablesAPI from "../../api/tables";
 import customersAPI from "../../api/customers";
 import menuItemsAPI from "../../api/menuItems";
+import usersAPI from "../../api/users";
 import Select from "../../components/ui/Select";
 import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
 import { useNavigate } from "react-router-dom";
+import { Trash2 } from "lucide-react";
 
 export default function OrderCreate() {
   const navigate = useNavigate();
 
   const [tables, setTables] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
 
   const [form, setForm] = useState({
     table_id: "",
     customer_id: "",
-    status: "pending",
+    user_id: "",
+    status: "pendiente",
+    notes: "",
     items: [],
   });
 
   const loadData = async () => {
-    const t = await tablesAPI.getAll();
-    const c = await customersAPI.getAll();
-    const m = await menuItemsAPI.getAll();
+    try {
+      const [t, c, u, m] = await Promise.all([
+        tablesAPI.getAll(),
+        customersAPI.getAll(),
+        usersAPI.getAll(),
+        menuItemsAPI.getAll()
+      ]);
 
-    setTables(t.data);
-    setCustomers(c.data);
-    setMenuItems(m.data);
+      setTables(t.data);
+      setCustomers(c.data);
+      setUsers(u.data);
+      setMenuItems(m.data);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    }
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const addItem = (id) => {
-    const item = menuItems.find((i) => i.id === Number(id));
+  const addItem = (menuItemId) => {
+    const item = menuItems.find((i) => i.id === Number(menuItemId));
     if (!item) return;
 
     setForm({
       ...form,
-      items: [...form.items, { menu_item_id: item.id, name: item.name, price: item.price }],
+      items: [
+        ...form.items,
+        {
+          menu_item_id: item.id,
+          quantity: 1,
+          special_instructions: ""
+        }
+      ],
     });
   };
 
-  const total = form.items.reduce((sum, item) => sum + Number(item.price), 0);
+  const removeItem = (index) => {
+    setForm({
+      ...form,
+      items: form.items.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateItemQuantity = (index, quantity) => {
+    const newItems = [...form.items];
+    newItems[index].quantity = Number(quantity);
+    setForm({ ...form, items: newItems });
+  };
+
+  const updateItemInstructions = (index, instructions) => {
+    const newItems = [...form.items];
+    newItems[index].special_instructions = instructions;
+    setForm({ ...form, items: newItems });
+  };
+
+  const calculateTotal = () => {
+    return form.items.reduce((sum, orderItem) => {
+      const menuItem = menuItems.find(m => m.id === orderItem.menu_item_id);
+      return sum + (menuItem ? menuItem.price * orderItem.quantity : 0);
+    }, 0);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (form.items.length === 0) {
+      alert("Debes agregar al menos un item a la orden");
+      return;
+    }
+
     try {
-      await ordersAPI.create({
-        ...form,
-        total_amount: total,
-      });
+      await ordersAPI.create(form);
       navigate("/orders");
     } catch (error) {
       console.error("Error creando orden:", error);
+      alert("Error al crear la orden. Verifica los datos.");
     }
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Crear Orden</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
 
         <Select
           label="Mesa"
           name="table_id"
-          required
+          value={form.table_id}
           onChange={(e) => setForm({ ...form, table_id: e.target.value })}
           options={[
             { value: "", label: "-- Selecciona --" },
-            ...tables.map((t) => ({ value: t.id, label: `Mesa ${t.number}` })),
+            ...tables.map((t) => ({ value: t.id, label: t.name })),
           ]}
         />
 
         <Select
           label="Cliente"
           name="customer_id"
-          required
+          value={form.customer_id}
           onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
           options={[
             { value: "", label: "-- Selecciona --" },
-            ...customers.map((c) => ({ value: c.id, label: c.name })),
+            ...customers.map((c) => ({ 
+              value: c.id, 
+              label: `${c.first_name} ${c.last_name}` 
+            })),
           ]}
         />
 
         <Select
-          label="Agregar Item"
-          onChange={(e) => addItem(e.target.value)}
+          label="Usuario (Mesero)"
+          name="user_id"
+          value={form.user_id}
+          onChange={(e) => setForm({ ...form, user_id: e.target.value })}
           options={[
-            { value: "", label: "-- Selecciona un plato --" },
-            ...menuItems.map((m) => ({ value: m.id, label: `${m.name} - $${m.price}` })),
+            { value: "", label: "-- Selecciona --" },
+            ...users.map((u) => ({ 
+              value: u.id, 
+              label: `${u.first_name} ${u.last_name}` 
+            })),
           ]}
         />
 
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Items</h2>
-          {form.items.length === 0 && <p className="text-gray-600">No hay items aÃºn.</p>}
+        <Select
+          label="Estado"
+          name="status"
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value })}
+          options={[
+            { value: "pendiente", label: "Pendiente" },
+            { value: "servido", label: "Servido" },
+            { value: "completado", label: "Completado" },
+            { value: "cancelado", label: "Cancelado" },
+          ]}
+        />
 
-          <ul className="list-disc pl-6">
-            {form.items.map((i, index) => (
-              <li key={index}>
-                {i.name} â€” ${i.price}
-              </li>
-            ))}
-          </ul>
+        <Input
+          label="Notas"
+          name="notes"
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          placeholder="Observaciones adicionales..."
+        />
+
+        <div className="border-t pt-4 mt-4">
+          <h2 className="text-xl font-semibold mb-3">Items del Pedido</h2>
+
+          <Select
+            label="Agregar Item"
+            onChange={(e) => {
+              if (e.target.value) {
+                addItem(e.target.value);
+                e.target.value = "";
+              }
+            }}
+            options={[
+              { value: "", label: "-- Selecciona un plato --" },
+              ...menuItems.map((m) => ({ 
+                value: m.id, 
+                label: `${m.name} - $${m.price}` 
+              })),
+            ]}
+          />
+
+          {form.items.length === 0 ? (
+            <p className="text-gray-600 mt-4">No hay items aÃºn.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {form.items.map((orderItem, index) => {
+                const menuItem = menuItems.find(m => m.id === orderItem.menu_item_id);
+                const subtotal = menuItem ? menuItem.price * orderItem.quantity : 0;
+
+                return (
+                  <div key={index} className="bg-gray-50 p-4 rounded-lg flex gap-3 items-start">
+                    <div className="flex-1">
+                      <div className="font-medium">{menuItem?.name}</div>
+                      <div className="text-sm text-gray-600">
+                        ${menuItem?.price} x {orderItem.quantity} = ${subtotal.toFixed(2)}
+                      </div>
+                      
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={orderItem.quantity}
+                          onChange={(e) => updateItemQuantity(index, e.target.value)}
+                          className="w-20"
+                        />
+                        
+                        <Input
+                          placeholder="Instrucciones especiales..."
+                          value={orderItem.special_instructions}
+                          onChange={(e) => updateItemInstructions(index, e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="text-2xl font-bold mt-4 text-right">
+            Total: ${calculateTotal().toFixed(2)}
+          </div>
         </div>
 
-        <div className="text-2xl font-bold">Total: ${total}</div>
-
-        <Button type="submit">Crear Orden</Button>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate("/orders")}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit">Crear Orden</Button>
+        </div>
       </form>
     </div>
   );
 }
-
 
 
 ================================================
@@ -1499,9 +1949,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import ordersAPI from "../../api/orders";
 import tablesAPI from "../../api/tables";
 import customersAPI from "../../api/customers";
-import menuItemsAPI from "../../api/menuItems";
+import usersAPI from "../../api/users";
 import Select from "../../components/ui/Select";
 import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
 
 export default function OrderEdit() {
   const { id } = useParams();
@@ -1509,40 +1960,38 @@ export default function OrderEdit() {
 
   const [tables, setTables] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     table_id: "",
     customer_id: "",
+    user_id: "",
     status: "",
-    items: [],
+    notes: "",
   });
 
   const loadData = async () => {
     try {
-      const [order, t, c, m] = await Promise.all([
+      const [order, t, c, u] = await Promise.all([
         ordersAPI.getById(id),
         tablesAPI.getAll(),
         customersAPI.getAll(),
-        menuItemsAPI.getAll(),
+        usersAPI.getAll()
       ]);
 
       const orderData = order.data;
 
       setTables(t.data);
       setCustomers(c.data);
-      setMenuItems(m.data);
+      setUsers(u.data);
 
       setForm({
-        table_id: orderData.table_id,
-        customer_id: orderData.customer_id,
-        status: orderData.status,
-        items: orderData.items.map((i) => ({
-          menu_item_id: i.menu_item_id,
-          name: i.menu_item.name,
-          price: i.menu_item.price,
-        })),
+        table_id: orderData.table_id || "",
+        customer_id: orderData.customer_id || "",
+        user_id: orderData.user_id || "",
+        status: orderData.status || "pendiente",
+        notes: orderData.notes || "",
       });
     } catch (error) {
       console.error("Error cargando datos:", error);
@@ -1555,39 +2004,14 @@ export default function OrderEdit() {
     loadData();
   }, []);
 
-  const addItem = (id) => {
-    const item = menuItems.find((i) => i.id === Number(id));
-    if (!item) return;
-
-    setForm({
-      ...form,
-      items: [
-        ...form.items,
-        { menu_item_id: item.id, name: item.name, price: item.price },
-      ],
-    });
-  };
-
-  const removeItem = (index) => {
-    setForm({
-      ...form,
-      items: form.items.filter((_, i) => i !== index),
-    });
-  };
-
-  const total = form.items.reduce((sum, i) => sum + Number(i.price), 0);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await ordersAPI.update(id, {
-        ...form,
-        total_amount: total,
-      });
-
+      await ordersAPI.update(id, form);
       navigate("/orders");
     } catch (error) {
       console.error("Error actualizando orden:", error);
+      alert("Error al actualizar la orden. Verifica los datos.");
     }
   };
 
@@ -1597,7 +2021,7 @@ export default function OrderEdit() {
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Editar Orden #{id}</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
 
         <Select
           label="Mesa"
@@ -1605,7 +2029,7 @@ export default function OrderEdit() {
           onChange={(e) => setForm({ ...form, table_id: e.target.value })}
           options={[
             { value: "", label: "-- Selecciona --" },
-            ...tables.map((t) => ({ value: t.id, label: `Mesa ${t.number}` })),
+            ...tables.map((t) => ({ value: t.id, label: t.name })),
           ]}
         />
 
@@ -1615,7 +2039,23 @@ export default function OrderEdit() {
           onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
           options={[
             { value: "", label: "-- Selecciona --" },
-            ...customers.map((c) => ({ value: c.id, label: c.name })),
+            ...customers.map((c) => ({ 
+              value: c.id, 
+              label: `${c.first_name} ${c.last_name}` 
+            })),
+          ]}
+        />
+
+        <Select
+          label="Usuario (Mesero)"
+          value={form.user_id}
+          onChange={(e) => setForm({ ...form, user_id: e.target.value })}
+          options={[
+            { value: "", label: "-- Selecciona --" },
+            ...users.map((u) => ({ 
+              value: u.id, 
+              label: `${u.first_name} ${u.last_name}` 
+            })),
           ]}
         />
 
@@ -1624,62 +2064,35 @@ export default function OrderEdit() {
           value={form.status}
           onChange={(e) => setForm({ ...form, status: e.target.value })}
           options={[
-            { value: "pending", label: "Pendiente" },
-            { value: "preparing", label: "Preparando" },
-            { value: "served", label: "Servido" },
-            { value: "completed", label: "Completado" },
+            { value: "pendiente", label: "Pendiente" },
+            { value: "servido", label: "Servido" },
+            { value: "completado", label: "Completado" },
+            { value: "cancelado", label: "Cancelado" },
           ]}
         />
 
-        {/* AGREGAR NUEVO ITEM */}
-        <Select
-          label="Agregar Item"
-          onChange={(e) => addItem(e.target.value)}
-          options={[
-            { value: "", label: "-- Selecciona un plato --" },
-            ...menuItems.map((m) => ({
-              value: m.id,
-              label: `${m.name} - $${m.price}`,
-            })),
-          ]}
+        <Input
+          label="Notas"
+          name="notes"
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          placeholder="Observaciones adicionales..."
         />
 
-        {/* LISTA DE ITEMS */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Items</h2>
-
-          <ul className="flex flex-col gap-2">
-            {form.items.map((i, index) => (
-              <li
-                key={index}
-                className="flex justify-between items-center bg-gray-100 p-3 rounded"
-              >
-                <span>
-                  {i.name} â€” ${i.price}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  className="text-red-600 font-bold"
-                >
-                  X
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate("/orders")}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit">Actualizar Orden</Button>
         </div>
-
-        <div className="text-2xl font-bold mt-2">
-          Total: ${total}
-        </div>
-
-        <Button type="submit">Actualizar Orden</Button>
       </form>
     </div>
   );
 }
-
 
 
 ================================================
@@ -1693,6 +2106,7 @@ import { Pencil, Trash2, PlusCircle } from "lucide-react";
 
 export default function OrderList() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
@@ -1700,6 +2114,8 @@ export default function OrderList() {
       setOrders(res.data);
     } catch (error) {
       console.error("Error cargando Ã³rdenes:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1718,9 +2134,27 @@ export default function OrderList() {
     }
   };
 
+  const getStatusBadge = (status) => {
+    const styles = {
+      pendiente: "bg-yellow-100 text-yellow-800",
+      servido: "bg-blue-100 text-blue-800",
+      completado: "bg-green-100 text-green-800",
+      cancelado: "bg-red-100 text-red-800",
+    };
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || "bg-gray-100"}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
+
   return (
     <div className="p-6">
-
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Ã“rdenes</h1>
 
@@ -1758,10 +2192,14 @@ export default function OrderList() {
             {orders.map((o) => (
               <tr key={o.id} className="border-b hover:bg-gray-50">
                 <td className="p-3">{o.id}</td>
-                <td className="p-3">{o.table?.number}</td>
-                <td className="p-3">{o.customer?.name}</td>
-                <td className="p-3">${o.total_amount}</td>
-                <td className="p-3 capitalize">{o.status}</td>
+                <td className="p-3">{o.table?.name || 'N/A'}</td>
+                <td className="p-3">
+                  {o.customer 
+                    ? `${o.customer.first_name} ${o.customer.last_name}` 
+                    : 'N/A'}
+                </td>
+                <td className="p-3">${Number(o.total || 0).toFixed(2)}</td>
+                <td className="p-3">{getStatusBadge(o.status)}</td>
 
                 <td className="p-3 flex justify-end gap-2">
                   <Link to={`/orders/edit/${o.id}`}>
@@ -1777,17 +2215,14 @@ export default function OrderList() {
                     <Trash2 size={18} />
                   </button>
                 </td>
-
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
     </div>
   );
 }
-
 
 
 ================================================
@@ -1810,8 +2245,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function TableCreate() {
   const [form, setForm] = useState({
-    number: "",
-    capacity: "",
+    name: "",
+    seats: "",
     status: "disponible",
   });
 
@@ -1827,6 +2262,7 @@ export default function TableCreate() {
       navigate("/tables");
     } catch (error) {
       console.error("Error creando mesa:", error);
+      alert("Error al crear mesa. Verifica los datos.");
     }
   };
 
@@ -1837,22 +2273,22 @@ export default function TableCreate() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="NÃºmero de Mesa"
-            type="number"
-            name="number"
-            value={form.number}
+            label="Nombre de la Mesa"
+            name="name"
+            value={form.name}
             onChange={handleChange}
-            placeholder="Ej: 1"
+            placeholder="Ej: Mesa 1"
             required
           />
 
           <Input
-            label="Capacidad (personas)"
+            label="Asientos (personas)"
             type="number"
-            name="capacity"
-            value={form.capacity}
+            name="seats"
+            value={form.seats}
             onChange={handleChange}
             placeholder="Ej: 4"
+            min="1"
             required
           />
 
@@ -1902,10 +2338,12 @@ export default function TableEdit() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    number: "",
-    capacity: "",
+    name: "",
+    seats: "",
     status: "disponible",
   });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTable();
@@ -1917,6 +2355,8 @@ export default function TableEdit() {
       setForm(res.data);
     } catch (error) {
       console.error("Error cargando mesa:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1930,8 +2370,13 @@ export default function TableEdit() {
       navigate("/tables");
     } catch (error) {
       console.error("Error actualizando mesa:", error);
+      alert("Error al actualizar mesa. Verifica los datos.");
     }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -1940,20 +2385,20 @@ export default function TableEdit() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="NÃºmero de Mesa"
-            type="number"
-            name="number"
-            value={form.number}
+            label="Nombre de la Mesa"
+            name="name"
+            value={form.name}
             onChange={handleChange}
             required
           />
 
           <Input
-            label="Capacidad (personas)"
+            label="Asientos (personas)"
             type="number"
-            name="capacity"
-            value={form.capacity}
+            name="seats"
+            value={form.seats}
             onChange={handleChange}
+            min="1"
             required
           />
 
@@ -2062,8 +2507,8 @@ export default function TableList() {
         <table className="min-w-full">
           <thead className="bg-gray-100 border-b">
             <tr>
-              <th className="p-3 text-left">NÃºmero</th>
-              <th className="p-3 text-left">Capacidad</th>
+              <th className="p-3 text-left">Nombre</th>
+              <th className="p-3 text-left">Asientos</th>
               <th className="p-3 text-left">Estado</th>
               <th className="p-3 text-right">Acciones</th>
             </tr>
@@ -2078,8 +2523,8 @@ export default function TableList() {
             ) : (
               tables.map((table) => (
                 <tr key={table.id} className="hover:bg-gray-50 border-b">
-                  <td className="py-3 px-4">Mesa {table.number}</td>
-                  <td className="py-3 px-4">{table.capacity} personas</td>
+                  <td className="py-3 px-4">{table.name}</td>
+                  <td className="py-3 px-4">{table.seats} personas</td>
                   <td className="py-3 px-4">{getStatusBadge(table.status)}</td>
                   <td className="py-3 px-4 flex justify-end gap-2">
                     <Button
@@ -2102,7 +2547,6 @@ export default function TableList() {
         </table>
       </div>
 
-      {/* Modal de confirmaciÃ³n */}
       <Modal
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
@@ -2134,7 +2578,7 @@ export { default as UserEdit } from "./UserEdit";
 ================================================
 FILE: src/pages/Users/UserCreate.jsx
 ================================================
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import usersAPI from "../../api/users";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -2143,16 +2587,38 @@ import { useNavigate } from "react-router-dom";
 
 export default function UserCreate() {
   const [form, setForm] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
-    role: "mesero",
+    role_id: "",
+    is_active: true
   });
 
+  const [roles, setRoles] = useState([]);
   const navigate = useNavigate();
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
+  const loadRoles = async () => {
+    try {
+      const res = await usersAPI.getRoles();
+      setRoles(res.data);
+    } catch (error) {
+      console.error("Error cargando roles:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ 
+      ...form, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2161,6 +2627,7 @@ export default function UserCreate() {
       navigate("/users");
     } catch (error) {
       console.error("Error creando usuario:", error);
+      alert("Error al crear usuario. Verifica los datos.");
     }
   };
 
@@ -2171,11 +2638,29 @@ export default function UserCreate() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Nombre completo"
-            name="name"
-            value={form.name}
+            label="Username"
+            name="username"
+            value={form.username}
             onChange={handleChange}
-            placeholder="Ej: Juan PÃ©rez"
+            placeholder="Ej: juan.perez"
+            required
+          />
+
+          <Input
+            label="Nombre"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            placeholder="Ej: Juan"
+            required
+          />
+
+          <Input
+            label="Apellido"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+            placeholder="Ej: PÃ©rez"
             required
           />
 
@@ -2201,17 +2686,26 @@ export default function UserCreate() {
 
           <Select
             label="Rol"
-            name="role"
-            value={form.role}
+            name="role_id"
+            value={form.role_id}
             onChange={handleChange}
             required
             options={[
-              { value: "admin", label: "Administrador" },
-              { value: "mesero", label: "Mesero" },
-              { value: "cocinero", label: "Cocinero" },
-              { value: "cajero", label: "Cajero" },
+              { value: "", label: "-- Seleccione un rol --" },
+              ...roles.map((r) => ({ value: r.id, label: r.name })),
             ]}
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <label className="font-medium">Usuario activo</label>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Button
@@ -2246,39 +2740,65 @@ export default function UserEdit() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
-    role: "mesero",
+    role_id: "",
+    is_active: true
   });
+
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadUser();
+    loadRoles();
   }, []);
 
   const loadUser = async () => {
     try {
       const res = await usersAPI.getById(id);
-      // No incluir password en el formulario por seguridad
       setForm({
-        name: res.data.name,
+        username: res.data.username,
+        first_name: res.data.first_name,
+        last_name: res.data.last_name,
         email: res.data.email,
         password: "",
-        role: res.data.role,
+        role_id: res.data.role_id,
+        is_active: res.data.is_active
       });
     } catch (error) {
       console.error("Error cargando usuario:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const loadRoles = async () => {
+    try {
+      const res = await usersAPI.getRoles();
+      setRoles(res.data);
+    } catch (error) {
+      console.error("Error cargando roles:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ 
+      ...form, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Si el password estÃ¡ vacÃ­o, no lo enviamos
       const dataToSend = { ...form };
+      
+      // Si el password estÃ¡ vacÃ­o, no lo enviamos
       if (!dataToSend.password) {
         delete dataToSend.password;
       }
@@ -2287,8 +2807,13 @@ export default function UserEdit() {
       navigate("/users");
     } catch (error) {
       console.error("Error actualizando usuario:", error);
+      alert("Error al actualizar usuario. Verifica los datos.");
     }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando...</div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -2297,9 +2822,25 @@ export default function UserEdit() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Input
-            label="Nombre completo"
-            name="name"
-            value={form.name}
+            label="Username"
+            name="username"
+            value={form.username}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Nombre"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="Apellido"
+            name="last_name"
+            value={form.last_name}
             onChange={handleChange}
             required
           />
@@ -2324,17 +2865,26 @@ export default function UserEdit() {
 
           <Select
             label="Rol"
-            name="role"
-            value={form.role}
+            name="role_id"
+            value={form.role_id}
             onChange={handleChange}
             required
             options={[
-              { value: "admin", label: "Administrador" },
-              { value: "mesero", label: "Mesero" },
-              { value: "cocinero", label: "Cocinero" },
-              { value: "cajero", label: "Cajero" },
+              { value: "", label: "-- Seleccione un rol --" },
+              ...roles.map((r) => ({ value: r.id, label: r.name })),
             ]}
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <label className="font-medium">Usuario activo</label>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Button
@@ -2362,259 +2912,310 @@ import usersAPI from "../../api/users";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Trash2, PlusCircle, Mail, Shield } from "lucide-react";
+import { Pencil, Trash2, PlusCircle, Mail } from "lucide-react";
 
 export default function UserList() {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [deleteId, setDeleteId] = useState(null);
-    const navigate = useNavigate();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
-    const loadUsers = async () => {
-        try {
-            const res = await usersAPI.getAll();
-            setUsers(res.data);
-        } catch (error) {
-            console.error("Error cargando usuarios:", error);
-        } finally {
-            setLoading(false);
-        }
+  const loadUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await usersAPI.getAll();
+      if (res && Array.isArray(res.data)) {
+        setUsers(res.data);
+        console.log("Usuarios cargados:", res.data);
+      } else {
+        setError("Respuesta invÃ¡lida del servidor.");
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Error cargando usuarios:", error);
+      setError("Error al cargar usuarios. Intenta nuevamente.");
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await usersAPI.remove(deleteId);
+      setDeleteId(null);
+      loadUsers();
+    } catch (error) {
+      console.error("Error eliminando usuario:", error);
+      setError("Error al eliminar usuario. Intenta nuevamente.");
+    }
+  };
+
+  const getRoleBadge = (roleName) => {
+    if (!roleName) {
+      return (
+        <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+          Sin Rol
+        </span>
+      );
+    }
+    
+    const lowerCaseRole = roleName.toLowerCase();
+    const styles = {
+      administrador: "bg-purple-100 text-purple-800",
+      mesero: "bg-blue-100 text-blue-800",
+      cocinero: "bg-orange-100 text-orange-800",
+      cliente: "bg-green-100 text-green-800",
     };
-
-    const confirmDelete = async () => {
-        try {
-            await usersAPI.remove(deleteId);
-            setDeleteId(null);
-            loadUsers();
-        } catch (error) {
-            console.error("Error eliminando usuario:", error);
-        }
-    }; // INICIO DE LA FUNCIÃ“N CORREGIDA
-
-    const getRoleBadge = (role) => {
-        // 1. COMPROBACIÃ“N: Evita el error si 'role' no es una cadena (es null o undefined).
-        if (typeof role !== "string" || !role.trim()) {
-            return (
-                <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
-                    Sin Rol
-                </span>
-            );
-        }
-
-        // 2. LÃ“GICA NORMAL: Si llegamos aquÃ­, 'role' es una cadena vÃ¡lida.
-        const lowerCaseRole = role.toLowerCase();
-
-        const styles = {
-            admin: "bg-purple-100 text-purple-800",
-            mesero: "bg-blue-100 text-blue-800",
-            cocinero: "bg-orange-100 text-orange-800",
-            cajero: "bg-green-100 text-green-800",
-        };
-
-        // Formatea el nombre del rol (ej: 'admin' -> 'Admin')
-        const formattedRoleName =
-            lowerCaseRole.charAt(0).toUpperCase() + lowerCaseRole.slice(1);
-
-        // Usa el estilo mapeado o un estilo gris por defecto.
-        return (
-            <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    styles[lowerCaseRole] || "bg-gray-100 text-gray-800"
-                }`}
-            >
-                {formattedRoleName}
-            </span>
-        );
-    }; // FIN DE LA FUNCIÃ“N CORREGIDA
-    if (loading) return <div className="p-6">Cargando...</div>;
-
+    
     return (
-        <div className="p-6">
-            Â  Â  Â {" "}
-            <div className="flex justify-between items-center mb-6">
-                Â  Â  Â  Â  <h1 className="text-3xl font-bold">Usuarios</h1>Â  Â  Â  Â {" "}
-                <Button
-                    onClick={() => navigate("/users/create")}
-                    variant="primary"
-                    className="flex items-center gap-2"
-                >
-                    Â  Â  Â  Â  Â  <PlusCircle size={18} /> Nuevo Usuario Â  Â  Â  Â {" "}
-                </Button>
-                Â  Â  Â {" "}
-            </div>
-            Â  Â  Â {" "}
-            <div className="bg-white rounded-xl shadow overflow-hidden">
-                Â  Â  Â  Â {" "}
-                <table className="min-w-full">
-                    Â  Â  Â  Â  Â {" "}
-                    <thead className="bg-gray-100 border-b">
-                        Â  Â  Â  Â  Â  Â {" "}
-                        <tr>
-                            Â  Â  Â  Â  Â  Â  Â {" "}
-                            <th className="p-3 text-left">Nombre</th>Â  Â  Â  Â  Â  Â 
-                            Â  <th className="p-3 text-left">Email</th>Â  Â  Â  Â  Â 
-                            Â  Â  <th className="p-3 text-left">Rol</th>Â  Â  Â  Â  Â 
-                            Â  Â  <th className="p-3 text-right">Acciones</th>Â  Â 
-                            Â  Â  Â  Â {" "}
-                        </tr>
-                        Â  Â  Â  Â  Â {" "}
-                    </thead>
-                    Â  Â  Â  Â  Â {" "}
-                    <tbody>
-                        Â  Â  Â  Â  Â  Â {" "}
-                        {users.length === 0 ? (
-                            <tr>
-                                Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                <td colSpan={4} className="text-center py-4">
-                                    Â  Â  Â  Â  Â  Â  Â  Â  Â  No hay usuarios Â  Â  Â  Â  Â 
-                                    Â  Â  Â {" "}
-                                </td>
-                                Â  Â  Â  Â  Â  Â  Â {" "}
-                            </tr>
-                        ) : (
-                            users.map((user) => (
-                                <tr
-                                    key={user.id}
-                                    className="hover:bg-gray-50 border-b"
-                                >
-                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    <td className="py-3 px-4 font-medium">
-                                        {user.name}
-                                    </td>
-                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    <td className="py-3 px-4">
-                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                        <div className="flex items-center gap-2 text-gray-600">
-                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                            <Mail size={16} />Â  Â  Â  Â  Â  Â  Â  Â  Â 
-                                            Â  Â  {user.email}Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                        </div>
-                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    </td>
-                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    <td className="py-3 px-4">
-                                        {getRoleBadge(user.role)}
-                                    </td>
-                                    Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    <td className="py-3 px-4 flex justify-end gap-2">
-                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                        <Button
-                                            variant="secondary"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/users/edit/${user.id}`
-                                                )
-                                            }
-                                        >
-                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                            <Pencil size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
-                                            Â  Â {" "}
-                                        </Button>
-                                        Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                        <Button
-                                            variant="danger"
-                                            onClick={() => setDeleteId(user.id)}
-                                        >
-                                            Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                            <Trash2 size={16} />Â  Â  Â  Â  Â  Â  Â  Â 
-                                            Â  Â {" "}
-                                        </Button>
-                                        Â  Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                    </td>
-                                    Â  Â  Â  Â  Â  Â  Â  Â {" "}
-                                </tr>
-                            ))
-                        )}
-                        Â  Â  Â  Â  Â {" "}
-                    </tbody>
-                    Â  Â  Â  Â {" "}
-                </table>
-                Â  Â  Â {" "}
-            </div>
-            Â  Â  Â  {/* Modal de confirmaciÃ³n */}Â  Â  Â {" "}  
-            <Modal
-                open={!!deleteId}
-                onClose={() => setDeleteId(null)}
-                title="Confirmar eliminaciÃ³n"
-            >
-                Â  Â  Â  Â  <p>Â¿Seguro que deseas eliminar este usuario?</p>Â  Â  Â  Â {" "}
-                <div className="flex justify-end gap-3 mt-4">
-                    Â  Â  Â  Â  Â {" "}
-                    <Button
-                        variant="secondary"
-                        onClick={() => setDeleteId(null)}
-                    >
-                        Â  Â  Â  Â  Â  Â  Cancelar Â  Â  Â  Â  Â {" "}
-                    </Button>
-                    Â  Â  Â  Â  Â {" "}
-                    <Button variant="danger" onClick={confirmDelete}>
-                        Â  Â  Â  Â  Â  Â  Eliminar Â  Â  Â  Â  Â {" "}
-                    </Button>
-                    Â  Â  Â  Â {" "}
-                </div>
-                Â  Â  Â {" "}
-            </Modal>
-            Â  Â {" "}
-        </div>
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-medium ${
+          styles[lowerCaseRole] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {roleName}
+      </span>
     );
-}
+  };
 
+  if (loading)
+    return <div className="p-6 text-center text-lg font-medium">Cargando...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Usuarios</h1>
+        <Button
+          onClick={() => navigate("/users/create")}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <PlusCircle size={18} /> Nuevo Usuario
+        </Button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-100 border-b">
+            <tr>
+              <th className="p-3 text-left">Username</th>
+              <th className="p-3 text-left">Nombre</th>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Rol</th>
+              <th className="p-3 text-left">Activo</th>
+              <th className="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-4">
+                  No hay usuarios
+                </td>
+              </tr>
+            ) : (
+              users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50 border-b">
+                  <td className="py-3 px-4 font-medium">{user.username}</td>
+                  <td className="py-3 px-4">
+                    {user.first_name} {user.last_name}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Mail size={16} />
+                      {user.email}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {getRoleBadge(user.role?.name)}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      user.is_active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {user.is_active ? 'SÃ­' : 'No'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/users/edit/${user.id}`)}
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => setDeleteId(user.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Confirmar eliminaciÃ³n"
+      >
+        <p>Â¿Seguro que deseas eliminar este usuario?</p>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
 
 
 ================================================
 FILE: src/routes/routes.jsx
 ================================================
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "../context/AuthContext";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 import AppLayout from "../components/layout/AppLayout";
+
+// Auth
+import Login from "../pages/Auth/Login";
+import Register from "../pages/Auth/Register";
+
+// Admin/Mesero
 import Dashboard from "../pages/Dashboard";
-
-// MENU ITEMS
 import { MenuList, MenuCreate, MenuEdit } from "../pages/MenuItems";
-
-// ORDERS
 import { OrderList, OrderCreate, OrderEdit } from "../pages/Orders";
-
-// TABLES
 import { TableList, TableCreate, TableEdit } from "../pages/Tables";
-
-// USERS
 import { UserList, UserCreate, UserEdit } from "../pages/Users";
+
+// Cliente
+import MenuCliente from "../pages/Cliente/MenuCliente";
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
+      <AuthProvider>
+        <Routes>
+          {/* Rutas pÃºblicas */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-          {/* DASHBOARD */}
-          <Route path="/" element={<Dashboard />} />
+          {/* Rutas protegidas */}
+          <Route element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
+            
+            {/* DASHBOARD - Solo Admin */}
+            <Route path="/" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
 
-          {/* MENU ITEMS */}
-          <Route path="/menu-items" element={<MenuList />} />
-          <Route path="/menu-items/create" element={<MenuCreate />} />
-          <Route path="/menu-items/edit/:id" element={<MenuEdit />} />
+            {/* MENU ITEMS - Solo Admin */}
+            <Route path="/menu-items" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuList />
+              </ProtectedRoute>
+            } />
+            <Route path="/menu-items/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/menu-items/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* ORDERS */}
-          <Route path="/orders" element={<OrderList />} />
-          <Route path="/orders/create" element={<OrderCreate />} />
-          <Route path="/orders/edit/:id" element={<OrderEdit />} />
+            {/* ORDERS - Admin y Mesero */}
+            <Route path="/orders" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderList />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders/create" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders/edit/:id" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* TABLES */}
-          <Route path="/tables" element={<TableList />} />
-          <Route path="/tables/create" element={<TableCreate />} />
-          <Route path="/tables/edit/:id" element={<TableEdit />} />
+            {/* TABLES - Solo Admin */}
+            <Route path="/tables" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableList />
+              </ProtectedRoute>
+            } />
+            <Route path="/tables/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/tables/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* USERS */}
-          <Route path="/users" element={<UserList />} />
-          <Route path="/users/create" element={<UserCreate />} />
-          <Route path="/users/edit/:id" element={<UserEdit />} />
+            {/* USERS - Solo Admin */}
+            <Route path="/users" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserList />
+              </ProtectedRoute>
+            } />
+            <Route path="/users/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/users/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserEdit />
+              </ProtectedRoute>
+            } />
 
-        </Route>
-      </Routes>
+            {/* CLIENTE - Ver menÃº */}
+            <Route path="/menu" element={
+              <ProtectedRoute roles={["Cliente"]}>
+                <MenuCliente />
+              </ProtectedRoute>
+            } />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

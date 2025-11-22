@@ -7,10 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'username',
@@ -30,6 +31,7 @@ class User extends Authenticatable
     protected $casts = [
         'is_active' => 'boolean',
         'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
 
     public function role(): BelongsTo
@@ -40,5 +42,26 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    // Helper para verificar roles
+    public function hasRole($roleName)
+    {
+        return $this->role && strtolower($this->role->name) === strtolower($roleName);
+    }
+
+    public function isAdmin()
+    {
+        return $this->hasRole('Administrador');
+    }
+
+    public function isMesero()
+    {
+        return $this->hasRole('Mesero');
+    }
+
+    public function isCliente()
+    {
+        return $this->hasRole('Cliente');
     }
 }

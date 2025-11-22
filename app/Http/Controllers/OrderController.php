@@ -10,12 +10,12 @@ class OrderController extends Controller
 {
     public function index()
     {
-        return Order::with(['customer','user','items.menuItem'])->get();
+        return Order::with(['customer','user','table','items.menuItem'])->get();
     }
 
     public function show($id)
     {
-        return Order::with(['customer','user','items.menuItem'])->findOrFail($id);
+        return Order::with(['customer','user','table','items.menuItem'])->findOrFail($id);
     }
 
     public function store(Request $request)
@@ -35,7 +35,7 @@ class OrderController extends Controller
         $order = Order::create([
             'customer_id' => $data['customer_id'] ?? null,
             'table_id'    => $data['table_id'] ?? null,
-            'user_id'     => $data['user_id'] ?? null,
+            'user_id'     => $data['user_id'] ?? auth()->id(),
             'status'      => $data['status'] ?? 'pendiente',
             'total'       => 0,
             'notes'       => $data['notes'] ?? null,
@@ -72,6 +72,9 @@ class OrderController extends Controller
         $data = $request->validate([
             'status' => 'nullable|in:pendiente,servido,completado,cancelado',
             'notes'  => 'nullable|string',
+            'table_id' => 'nullable|exists:tables,id',
+            'customer_id' => 'nullable|exists:customers,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $order->update($data);
@@ -84,5 +87,20 @@ class OrderController extends Controller
         Order::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Pedido eliminado correctamente']);
+    }
+
+    /**
+     * Obtener pedidos del cliente autenticado
+     */
+    public function myOrders(Request $request)
+    {
+        $userId = $request->user()->id;
+        
+        $orders = Order::with(['customer','user','table','items.menuItem'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($orders);
     }
 }

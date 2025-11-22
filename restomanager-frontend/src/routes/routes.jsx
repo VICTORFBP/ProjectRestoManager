@@ -1,50 +1,126 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "../context/AuthContext";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 import AppLayout from "../components/layout/AppLayout";
+
+// Auth
+import Login from "../pages/Auth/Login";
+import Register from "../pages/Auth/Register";
+
+// Admin/Mesero
 import Dashboard from "../pages/Dashboard";
-
-// MENU ITEMS
 import { MenuList, MenuCreate, MenuEdit } from "../pages/MenuItems";
-
-// ORDERS
 import { OrderList, OrderCreate, OrderEdit } from "../pages/Orders";
-
-// TABLES
 import { TableList, TableCreate, TableEdit } from "../pages/Tables";
-
-// USERS
 import { UserList, UserCreate, UserEdit } from "../pages/Users";
+
+// Cliente
+import MenuCliente from "../pages/Cliente/MenuCliente";
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
+      <AuthProvider>
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-          {/* DASHBOARD */}
-          <Route path="/" element={<Dashboard />} />
+          {/* Rutas protegidas */}
+          <Route element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
+            
+            {/* DASHBOARD - Solo Admin */}
+            <Route path="/" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
 
-          {/* MENU ITEMS */}
-          <Route path="/menu-items" element={<MenuList />} />
-          <Route path="/menu-items/create" element={<MenuCreate />} />
-          <Route path="/menu-items/edit/:id" element={<MenuEdit />} />
+            {/* MENU ITEMS - Solo Admin */}
+            <Route path="/menu-items" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuList />
+              </ProtectedRoute>
+            } />
+            <Route path="/menu-items/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/menu-items/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MenuEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* ORDERS */}
-          <Route path="/orders" element={<OrderList />} />
-          <Route path="/orders/create" element={<OrderCreate />} />
-          <Route path="/orders/edit/:id" element={<OrderEdit />} />
+            {/* ORDERS - Admin y Mesero */}
+            <Route path="/orders" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderList />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders/create" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders/edit/:id" element={
+              <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                <OrderEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* TABLES */}
-          <Route path="/tables" element={<TableList />} />
-          <Route path="/tables/create" element={<TableCreate />} />
-          <Route path="/tables/edit/:id" element={<TableEdit />} />
+            {/* TABLES - Solo Admin */}
+            <Route path="/tables" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableList />
+              </ProtectedRoute>
+            } />
+            <Route path="/tables/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/tables/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <TableEdit />
+              </ProtectedRoute>
+            } />
 
-          {/* USERS */}
-          <Route path="/users" element={<UserList />} />
-          <Route path="/users/create" element={<UserCreate />} />
-          <Route path="/users/edit/:id" element={<UserEdit />} />
+            {/* USERS - Solo Admin */}
+            <Route path="/users" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserList />
+              </ProtectedRoute>
+            } />
+            <Route path="/users/create" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/users/edit/:id" element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <UserEdit />
+              </ProtectedRoute>
+            } />
 
-        </Route>
-      </Routes>
+            {/* CLIENTE - Ver menú */}
+            <Route path="/menu" element={
+              <ProtectedRoute roles={["Cliente"]}>
+                <MenuCliente />
+              </ProtectedRoute>
+            } />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
