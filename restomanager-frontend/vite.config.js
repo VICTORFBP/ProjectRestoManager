@@ -10,4 +10,22 @@ export default defineConfig({
       },
     }),
   ],
+  // AGREGAR ESTO:
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  // Para desarrollo local
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
