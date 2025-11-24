@@ -41,13 +41,17 @@ Directory structure:
         │       ├── Loader.jsx
         │       ├── Modal.jsx
         │       └── Select.jsx
+        ├── context/
+        │   └── AuthContext.jsx
         ├── pages/
         │   ├── Dashboard.jsx
         │   ├── Auth/
         │   │   ├── Login.jsx
         │   │   └── Register.jsx
         │   ├── Cliente/
-        │   │   └── MenuCliente.jsx
+        │   │   ├── Carrito.jsx
+        │   │   ├── MenuCliente.jsx
+        │   │   └── PedidosCliente.jsx
         │   ├── MenuItems/
         │   │   ├── index.jsx
         │   │   ├── MenuCreate.jsx
@@ -356,19 +360,50 @@ createRoot(document.getElementById("root")).render(
 ================================================
 FILE: src/api/axios.js
 ================================================
-// src/api/axios.js
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api", // Ajustar si tu backend usa otro puerto
+  baseURL: "http://localhost:8000/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
+  withCredentials: false, // Cambiado a false para tokens Bearer
 });
 
-export default api;
+// Agregar token automÃ¡ticamente si existe
+const token = localStorage.getItem("token");
+if (token) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
 
+// Interceptor para agregar token en cada request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para manejar errores 401 (no autorizado)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
 
 
 ================================================
@@ -989,6 +1024,125 @@ export default function Select({ label, options = [], ...props }) {
 
 
 ================================================
+FILE: src/context/AuthContext.jsx
+================================================
+import { createContext, useContext, useState, useEffect } from "react";
+import api from "../api/axios";
+
+// Crear y exportar el contexto
+export const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth debe usarse dentro de AuthProvider");
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      loadUser();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
+  const loadUser = async () => {
+    try {
+      const res = await api.get("/me");
+      setUser(res.data);
+    } catch (error) {
+      console.error("Error cargando usuario:", error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email, password) => {
+    const res = await api.post("/login", { email, password });
+    const { token: newToken, user: userData } = res.data;
+
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
+    setUser(userData);
+    api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+
+    return userData;
+  };
+
+  const register = async (data) => {
+    const res = await api.post("/register", data);
+    const { token: newToken, user: userData } = res.data;
+
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
+    setUser(userData);
+    api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+
+    return userData;
+  };
+
+  const logout = async () => {
+    try {
+      await api.post("/logout");
+    } catch (error) {
+      console.error("Error en logout:", error);
+    } finally {
+      localStorage.removeItem("token");
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common["Authorization"];
+    }
+  };
+
+  const isAdmin = () => {
+    return user?.role?.name?.toLowerCase() === "administrador";
+  };
+
+  const isMesero = () => {
+    return user?.role?.name?.toLowerCase() === "mesero";
+  };
+
+  const isCliente = () => {
+    return user?.role?.name?.toLowerCase() === "cliente";
+  };
+
+  const hasRole = (...roles) => {
+    if (!user?.role?.name) return false;
+    const userRole = user.role.name.toLowerCase();
+    return roles.some(role => role.toLowerCase() === userRole);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        isAdmin,
+        isMesero,
+        isCliente,
+        hasRole,
+        isAuthenticated: !!user,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+
+================================================
 FILE: src/pages/Dashboard.jsx
 ================================================
 import { useEffect, useState } from "react";
@@ -1115,7 +1269,7 @@ export default function Login() {
       
       // Redirigir segÃºn el rol
       if (user.role.name === "Administrador") {
-        navigate("/dashboard");
+        navigate("/");
       } else if (user.role.name === "Mesero") {
         navigate("/orders");
       } else {
@@ -1204,111 +1358,651 @@ export default function Login() {
 ================================================
 FILE: src/pages/Auth/Register.jsx
 ================================================
-[Empty file]
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import { UserPlus, Mail, Lock, User } from "lucide-react";
 
+export default function Register() {
+  const [form, setForm] = useState({
+    username: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
-================================================
-FILE: src/pages/Cliente/MenuCliente.jsx
-================================================
-import { useEffect, useState } from "react";
-import menuItemsAPI from "../../api/menuItems";
-import { ShoppingCart, ChefHat } from "lucide-react";
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
 
-export default function MenuCliente() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+    if (form.password !== form.password_confirmation) {
+      setError("Las contraseÃ±as no coinciden");
+      return;
+    }
 
-  useEffect(() => {
-    loadMenu();
-  }, []);
+    setLoading(true);
 
-  const loadMenu = async () => {
     try {
-      const res = await menuItemsAPI.getAll();
-      setItems(res.data);
-    } catch (error) {
-      console.error("Error cargando menÃº:", error);
+      await register(form);
+      navigate("/menu");
+    } catch (err) {
+      console.error("Error en registro:", err);
+      setError(err.response?.data?.message || "Error al registrarse");
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ["all", ...new Set(items.map(i => i.category?.name).filter(Boolean))];
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+            <UserPlus className="w-8 h-8 text-green-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800">Crear Cuenta</h1>
+          <p className="text-gray-600 mt-2">Ãšnete a RestoManager</p>
+        </div>
 
-  const filteredItems = selectedCategory === "all" 
-    ? items 
-    : items.filter(i => i.category?.name === selectedCategory);
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
 
-  if (loading) {
-    return <div className="p-6 text-center">Cargando menÃº...</div>;
-  }
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <User className="inline w-4 h-4 mr-2" />
+              Username
+            </label>
+            <Input
+              placeholder="usuario123"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre
+              </label>
+              <Input
+                placeholder="Juan"
+                value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Apellido
+              </label>
+              <Input
+                placeholder="PÃ©rez"
+                value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Mail className="inline w-4 h-4 mr-2" />
+              Email
+            </label>
+            <Input
+              type="email"
+              placeholder="correo@ejemplo.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Lock className="inline w-4 h-4 mr-2" />
+              ContraseÃ±a
+            </label>
+            <Input
+              type="password"
+              placeholder="MÃ­nimo 6 caracteres"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Confirmar ContraseÃ±a
+            </label>
+            <Input
+              type="password"
+              placeholder="Repite tu contraseÃ±a"
+              value={form.password_confirmation}
+              onChange={(e) => setForm({ ...form, password_confirmation: e.target.value })}
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition"
+          >
+            {loading ? "Registrando..." : "Crear Cuenta"}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Â¿Ya tienes cuenta?{" "}
+            <Link to="/login" className="text-green-600 font-semibold hover:underline">
+              Inicia sesiÃ³n
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/pages/Cliente/Carrito.jsx
+================================================
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft } from "lucide-react";
+
+export default function Carrito() {
+    const [carrito, setCarrito] = useState([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const carritoGuardado = localStorage.getItem("carrito");
+        if (carritoGuardado) {
+            setCarrito(JSON.parse(carritoGuardado));
+        }
+    }, []);
+
+    const actualizarCantidad = (id, nuevaCantidad) => {
+        if (nuevaCantidad < 1) return;
+        
+        const nuevoCarrito = carrito.map(item =>
+            item.id === id ? { ...item, quantity: nuevaCantidad } : item
+        );
+        setCarrito(nuevoCarrito);
+        localStorage.setItem("carrito", JSON.stringify(nuevoCarrito));
+    };
+
+    const eliminarItem = (id) => {
+        const nuevoCarrito = carrito.filter(item => item.id !== id);
+        setCarrito(nuevoCarrito);
+        localStorage.setItem("carrito", JSON.stringify(nuevoCarrito));
+    };
+
+    const calcularTotal = () => {
+        return carrito.reduce((total, item) => total + (item.price * item.quantity), 0);
+    };
+
+    const realizarPedido = () => {
+        // AquÃ­ irÃ­a la lÃ³gica para enviar el pedido al backend
+        alert("Pedido realizado! (Funcionalidad por implementar)");
+        localStorage.removeItem("carrito");
+        setCarrito([]);
+        navigate("/my-orders");
+    };
+
+    if (carrito.length === 0) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-4xl mx-auto">
+                    <button 
+                        onClick={() => navigate("/menu")}
+                        className="flex items-center gap-2 text-orange-500 mb-6"
+                    >
+                        <ArrowLeft size={20} />
+                        Volver al MenÃº
+                    </button>
+                    
+                    <div className="bg-white rounded-xl shadow p-8 text-center">
+                        <ShoppingCart size={64} className="text-gray-400 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-600 mb-2">Carrito VacÃ­o</h2>
+                        <p className="text-gray-500 mb-6">Agrega algunos platillos deliciosos a tu carrito</p>
+                        <button 
+                            onClick={() => navigate("/menu")}
+                            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition"
+                        >
+                            Ver MenÃº
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-4xl mx-auto">
+                <button 
+                    onClick={() => navigate("/menu")}
+                    className="flex items-center gap-2 text-orange-500 mb-6"
+                >
+                    <ArrowLeft size={20} />
+                    Volver al MenÃº
+                </button>
+
+                <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <ShoppingCart className="text-orange-500" />
+                    Mi Carrito
+                </h1>
+
+                <div className="bg-white rounded-xl shadow overflow-hidden">
+                    {carrito.map((item) => (
+                        <div key={item.id} className="border-b p-6 flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    {item.image_url ? (
+                                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover rounded-lg" />
+                                    ) : (
+                                        <span className="text-gray-400 text-sm">Imagen</span>
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-lg">{item.name}</h3>
+                                    <p className="text-gray-600">${item.price} c/u</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => actualizarCantidad(item.id, item.quantity - 1)}
+                                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                                    >
+                                        <Minus size={16} />
+                                    </button>
+                                    <span className="w-8 text-center font-medium">{item.quantity}</span>
+                                    <button 
+                                        onClick={() => actualizarCantidad(item.id, item.quantity + 1)}
+                                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+
+                                <div className="w-24 text-right font-semibold">
+                                    ${(item.price * item.quantity).toFixed(2)}
+                                </div>
+
+                                <button 
+                                    onClick={() => eliminarItem(item.id)}
+                                    className="text-red-500 hover:text-red-700 p-2"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className="p-6 bg-gray-50">
+                        <div className="flex justify-between items-center text-xl font-bold">
+                            <span>Total:</span>
+                            <span>${calcularTotal().toFixed(2)}</span>
+                        </div>
+                        
+                        <button 
+                            onClick={realizarPedido}
+                            className="w-full mt-4 bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold"
+                        >
+                            Realizar Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
+================================================
+FILE: src/pages/Cliente/MenuCliente.jsx
+================================================
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ChefHat } from "lucide-react";
+
+export default function Carrito() {
+    const [carrito, setCarrito] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        const carritoGuardado = localStorage.getItem("carrito");
+        if (carritoGuardado) {
+            setCarrito(JSON.parse(carritoGuardado));
+        }
+    }, []);
+
+    const actualizarCantidad = (id, nuevaCantidad) => {
+        if (nuevaCantidad < 1) return;
+        
+        const nuevoCarrito = carrito.map(item =>
+            item.id === id ? { ...item, quantity: nuevaCantidad } : item
+        );
+        setCarrito(nuevoCarrito);
+        localStorage.setItem("carrito", JSON.stringify(nuevoCarrito));
+    };
+
+    const eliminarItem = (id) => {
+        const nuevoCarrito = carrito.filter(item => item.id !== id);
+        setCarrito(nuevoCarrito);
+        localStorage.setItem("carrito", JSON.stringify(nuevoCarrito));
+    };
+
+    const calcularTotal = () => {
+        return carrito.reduce((total, item) => total + (Number(item.price) * item.quantity), 0);
+    };
+
+    const realizarPedido = async () => {
+        if (!user) {
+            alert("Debes iniciar sesiÃ³n para realizar un pedido");
+            navigate("/login");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // Preparar datos para la orden
+            const orderData = {
+                items: carrito.map(item => ({
+                    menu_item_id: item.id,
+                    quantity: item.quantity,
+                    special_instructions: ""
+                })),
+                status: "pendiente",
+                customer_id: user.id, // Asumiendo que el usuario cliente tiene un customer_id
+                notes: "Pedido desde carrito online"
+            };
+
+            // AquÃ­ irÃ­a la llamada a tu API para crear la orden
+            // const response = await ordersAPI.create(orderData);
+            
+            // SimulaciÃ³n de Ã©xito
+            console.log("Datos del pedido:", orderData);
+            
+            alert("Â¡Pedido realizado con Ã©xito! SerÃ¡ preparado pronto.");
+            
+            // Limpiar carrito
+            localStorage.removeItem("carrito");
+            setCarrito([]);
+            
+            // Redirigir a mis pedidos
+            navigate("/my-orders");
+            
+        } catch (error) {
+            console.error("Error al realizar pedido:", error);
+            alert("Error al realizar el pedido. Intenta nuevamente.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const vaciarCarrito = () => {
+        if (carrito.length === 0) return;
+        
+        if (window.confirm("Â¿EstÃ¡s seguro de que quieres vaciar el carrito?")) {
+            setCarrito([]);
+            localStorage.removeItem("carrito");
+        }
+    };
+
+    if (carrito.length === 0) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-4xl mx-auto">
+                    <button 
+                        onClick={() => navigate("/menu")}
+                        className="flex items-center gap-2 text-orange-500 mb-6 hover:text-orange-600 transition"
+                    >
+                        <ArrowLeft size={20} />
+                        Volver al MenÃº
+                    </button>
+                    
+                    <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                        <ShoppingCart size={80} className="text-gray-300 mx-auto mb-4" />
+                        <h2 className="text-3xl font-bold text-gray-600 mb-4">Carrito VacÃ­o</h2>
+                        <p className="text-gray-500 mb-6 text-lg">
+                            AÃºn no has agregado platillos a tu carrito
+                        </p>
+                        <button 
+                            onClick={() => navigate("/menu")}
+                            className="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 transition font-semibold text-lg"
+                        >
+                            Explorar MenÃº
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <button 
+                        onClick={() => navigate("/menu")}
+                        className="flex items-center gap-2 text-orange-500 hover:text-orange-600 transition"
+                    >
+                        <ArrowLeft size={20} />
+                        Volver al MenÃº
+                    </button>
+                    
+                    <button 
+                        onClick={vaciarCarrito}
+                        className="flex items-center gap-2 text-red-500 hover:text-red-600 transition"
+                    >
+                        <Trash2 size={18} />
+                        Vaciar Carrito
+                    </button>
+                </div>
+
+                <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <ShoppingCart className="text-orange-500" size={32} />
+                    Mi Carrito de Compras
+                </h1>
+
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    {carrito.map((item) => (
+                        <div key={item.id} className="border-b p-6 flex items-center justify-between hover:bg-gray-50 transition">
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                                    {item.image_url ? (
+                                        <img 
+                                            src={item.image_url} 
+                                            alt={item.name} 
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    ) : (
+                                        <ChefHat size={24} className="text-gray-400" />
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-lg text-gray-800">{item.name}</h3>
+                                    <p className="text-gray-600">{item.category?.name || "General"}</p>
+                                    <p className="text-orange-500 font-semibold">${Number(item.price).toFixed(2)} c/u</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={() => actualizarCantidad(item.id, item.quantity - 1)}
+                                        className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition"
+                                        disabled={item.quantity <= 1}
+                                    >
+                                        <Minus size={16} />
+                                    </button>
+                                    <span className="w-12 text-center font-medium text-lg bg-gray-100 py-2 rounded">
+                                        {item.quantity}
+                                    </span>
+                                    <button 
+                                        onClick={() => actualizarCantidad(item.id, item.quantity + 1)}
+                                        className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+
+                                <div className="w-28 text-right">
+                                    <div className="font-bold text-lg text-gray-800">
+                                        ${(Number(item.price) * item.quantity).toFixed(2)}
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => eliminarItem(item.id)}
+                                    className="text-red-500 hover:text-red-700 p-2 transition"
+                                    title="Eliminar del carrito"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className="p-6 bg-gradient-to-r from-orange-50 to-red-50">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-xl font-semibold text-gray-700">Subtotal:</span>
+                            <span className="text-xl font-semibold text-gray-700">${calcularTotal().toFixed(2)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center mb-6">
+                            <span className="text-lg text-gray-600">Total de items:</span>
+                            <span className="text-lg text-gray-600">
+                                {carrito.reduce((total, item) => total + item.quantity, 0)} productos
+                            </span>
+                        </div>
+                        
+                        <button 
+                            onClick={realizarPedido}
+                            disabled={loading || carrito.length === 0}
+                            className="w-full bg-orange-500 text-white py-4 rounded-lg hover:bg-orange-600 transition font-semibold text-lg disabled:bg-orange-300 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="w-5 h-5 border-2 border-white border-dashed rounded-full animate-spin"></div>
+                                    Procesando...
+                                </div>
+                            ) : (
+                                `Realizar Pedido - $${calcularTotal().toFixed(2)}`
+                            )}
+                        </button>
+                        
+                        <p className="text-center text-gray-500 mt-3 text-sm">
+                            Tu pedido serÃ¡ preparado y estarÃ¡ listo en aproximadamente 20-30 minutos
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
+================================================
+FILE: src/pages/Cliente/PedidosCliente.jsx
+================================================
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext'; // Ruta corregida
+
+export default function PedidosCliente() {
+  const { user } = useAuth();
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    cargarMisPedidos();
+  }, []);
+
+  const cargarMisPedidos = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/my-orders', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPedidos(data);
+      }
+    } catch (error) {
+      console.error('Error cargando pedidos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Cargando pedidos...</div>;
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-          <ChefHat className="text-orange-500" size={40} />
-          Nuestro MenÃº
-        </h1>
-        <p className="text-gray-600">Descubre nuestros deliciosos platillos</p>
-      </div>
-
-      {/* Filtro de categorÃ­as */}
-      <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition ${
-              selectedCategory === cat
-                ? "bg-orange-500 text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {cat === "all" ? "Todos" : cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid de items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map(item => (
-          <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
-            <div className="h-48 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-              <ChefHat size={64} className="text-white opacity-50" />
-            </div>
-            
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
-                <span className="text-2xl font-bold text-orange-600">
-                  ${Number(item.price).toFixed(2)}
+      <h1 className="text-2xl font-bold mb-6">Mis Pedidos</h1>
+      
+      {pedidos.length === 0 ? (
+        <p>No tienes pedidos aÃºn.</p>
+      ) : (
+        <div className="space-y-4">
+          {pedidos.map(pedido => (
+            <div key={pedido.id} className="border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold">Pedido #{pedido.id}</h3>
+                <span className={`px-2 py-1 rounded text-sm ${
+                  pedido.status === 'completado' ? 'bg-green-100 text-green-800' :
+                  pedido.status === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {pedido.status}
                 </span>
               </div>
-              
-              <p className="text-gray-600 text-sm mb-3">
-                {item.description || "Delicioso platillo preparado con los mejores ingredientes"}
+              <p className="text-gray-600">Total: ${pedido.total}</p>
+              <p className="text-sm text-gray-500">
+                Fecha: {new Date(pedido.created_at).toLocaleDateString()}
               </p>
               
-              <div className="flex items-center justify-between">
-                <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                  {item.category?.name || "General"}
-                </span>
-                
-                <button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition">
-                  <ShoppingCart size={18} />
-                  Ordenar
-                </button>
+              <div className="mt-2">
+                <h4 className="font-medium mb-1">Items:</h4>
+                {pedido.items.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span>{item.menu_item.name} x {item.quantity}</span>
+                    <span>${item.subtotal}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          No hay platillos disponibles en esta categorÃ­a
+          ))}
         </div>
       )}
     </div>
@@ -3111,6 +3805,8 @@ import { UserList, UserCreate, UserEdit } from "../pages/Users";
 
 // Cliente
 import MenuCliente from "../pages/Cliente/MenuCliente";
+import PedidosCliente from "../pages/Cliente/PedidosCliente";
+import Carrito from "../pages/Cliente/Carrito";
 
 export default function AppRoutes() {
   return (
@@ -3122,97 +3818,155 @@ export default function AppRoutes() {
           <Route path="/register" element={<Register />} />
 
           {/* Rutas protegidas */}
-          <Route element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }>
-            
-            {/* DASHBOARD - Solo Admin */}
-            <Route path="/" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <Dashboard />
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
               </ProtectedRoute>
-            } />
+            }
+          >
+            {/* DASHBOARD - Solo Admin */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
 
             {/* MENU ITEMS - Solo Admin */}
-            <Route path="/menu-items" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <MenuList />
-              </ProtectedRoute>
-            } />
-            <Route path="/menu-items/create" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <MenuCreate />
-              </ProtectedRoute>
-            } />
-            <Route path="/menu-items/edit/:id" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <MenuEdit />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/menu-items"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <MenuList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/menu-items/create"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <MenuCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/menu-items/edit/:id"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <MenuEdit />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ORDERS - Admin y Mesero */}
-            <Route path="/orders" element={
-              <ProtectedRoute roles={["Administrador", "Mesero"]}>
-                <OrderList />
-              </ProtectedRoute>
-            } />
-            <Route path="/orders/create" element={
-              <ProtectedRoute roles={["Administrador", "Mesero"]}>
-                <OrderCreate />
-              </ProtectedRoute>
-            } />
-            <Route path="/orders/edit/:id" element={
-              <ProtectedRoute roles={["Administrador", "Mesero"]}>
-                <OrderEdit />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                  <OrderList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders/create"
+              element={
+                <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                  <OrderCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders/edit/:id"
+              element={
+                <ProtectedRoute roles={["Administrador", "Mesero"]}>
+                  <OrderEdit />
+                </ProtectedRoute>
+              }
+            />
 
             {/* TABLES - Solo Admin */}
-            <Route path="/tables" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <TableList />
-              </ProtectedRoute>
-            } />
-            <Route path="/tables/create" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <TableCreate />
-              </ProtectedRoute>
-            } />
-            <Route path="/tables/edit/:id" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <TableEdit />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/tables"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <TableList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tables/create"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <TableCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tables/edit/:id"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <TableEdit />
+                </ProtectedRoute>
+              }
+            />
 
             {/* USERS - Solo Admin */}
-            <Route path="/users" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <UserList />
-              </ProtectedRoute>
-            } />
-            <Route path="/users/create" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <UserCreate />
-              </ProtectedRoute>
-            } />
-            <Route path="/users/edit/:id" element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <UserEdit />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <UserList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/create"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <UserCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/edit/:id"
+              element={
+                <ProtectedRoute roles={["Administrador"]}>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* CLIENTE - Ver menÃº */}
-            <Route path="/menu" element={
-              <ProtectedRoute roles={["Cliente"]}>
-                <MenuCliente />
-              </ProtectedRoute>
-            } />
+            {/* CLIENTE - Ver menÃº, carrito y pedidos */}
+            <Route
+              path="/menu"
+              element={
+                <ProtectedRoute roles={["Cliente"]}>
+                  <MenuCliente />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carrito"
+              element={
+                <ProtectedRoute roles={["Cliente"]}>
+                  <Carrito />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-orders"
+              element={
+                <ProtectedRoute roles={["Cliente"]}>
+                  <PedidosCliente />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Fallback */}
+            {/* Fallback simple */}
             <Route path="*" element={<Navigate to="/" replace />} />
-
           </Route>
         </Routes>
       </AuthProvider>

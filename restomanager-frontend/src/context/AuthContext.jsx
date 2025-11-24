@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
 
-const AuthContext = createContext();
+// Crear y exportar el contexto
+export const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

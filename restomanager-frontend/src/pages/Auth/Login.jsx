@@ -22,7 +22,7 @@ export default function Login() {
       
       // Redirigir según el rol
       if (user.role.name === "Administrador") {
-        navigate("/dashboard");
+        navigate("/");
       } else if (user.role.name === "Mesero") {
         navigate("/orders");
       } else {

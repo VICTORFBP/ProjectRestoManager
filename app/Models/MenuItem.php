@@ -16,6 +16,7 @@ class MenuItem extends Model
         'description',
         'price',
         'category_id',
+        'image_url', // ✅ Agregado
     ];
 
     /**

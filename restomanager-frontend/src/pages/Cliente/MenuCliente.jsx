@@ -1,104 +1,193 @@
-import { useEffect, useState } from "react";
-import menuItemsAPI from "../../api/menuItems";
-import { ShoppingCart, ChefHat } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { ShoppingCart, Plus, ChefHat } from "lucide-react";
 
 export default function MenuCliente() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+    const [menuItems, setMenuItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState("all");
+    const navigate = useNavigate();
+    const { user } = useAuth();
 
-  useEffect(() => {
-    loadMenu();
-  }, []);
+    useEffect(() => {
+        cargarMenu();
+    }, []);
 
-  const loadMenu = async () => {
-    try {
-      const res = await menuItemsAPI.getAll();
-      setItems(res.data);
-    } catch (error) {
-      console.error("Error cargando menú:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const categories = ["all", ...new Set(items.map(i => i.category?.name).filter(Boolean))];
-
-  const filteredItems = selectedCategory === "all" 
-    ? items 
-    : items.filter(i => i.category?.name === selectedCategory);
-
-  if (loading) {
-    return <div className="p-6 text-center">Cargando menú...</div>;
-  }
-
-  return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-          <ChefHat className="text-orange-500" size={40} />
-          Nuestro Menú
-        </h1>
-        <p className="text-gray-600">Descubre nuestros deliciosos platillos</p>
-      </div>
-
-      {/* Filtro de categorías */}
-      <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition ${
-              selectedCategory === cat
-                ? "bg-orange-500 text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {cat === "all" ? "Todos" : cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid de items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map(item => (
-          <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
-            <div className="h-48 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-              <ChefHat size={64} className="text-white opacity-50" />
-            </div>
+    const cargarMenu = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/menu-items', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
-                <span className="text-2xl font-bold text-orange-600">
-                  ${Number(item.price).toFixed(2)}
-                </span>
-              </div>
-              
-              <p className="text-gray-600 text-sm mb-3">
-                {item.description || "Delicioso platillo preparado con los mejores ingredientes"}
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                  {item.category?.name || "General"}
-                </span>
+            if (response.ok) {
+                const data = await response.json();
+                setMenuItems(data);
                 
-                <button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition">
-                  <ShoppingCart size={18} />
-                  Ordenar
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+                // Extraer categorías únicas
+                const uniqueCategories = [...new Set(data.map(item => item.category?.name).filter(Boolean))];
+                setCategories(uniqueCategories);
+            }
+        } catch (error) {
+            console.error('Error cargando menú:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          No hay platillos disponibles en esta categoría
+    const agregarAlCarrito = (item) => {
+        if (!user) {
+            alert("Debes iniciar sesión para agregar items al carrito");
+            navigate("/login");
+            return;
+        }
+
+        const carritoGuardado = localStorage.getItem("carrito");
+        let carrito = carritoGuardado ? JSON.parse(carritoGuardado) : [];
+
+        // Verificar si el item ya está en el carrito
+        const itemExistente = carrito.find(cartItem => cartItem.id === item.id);
+        
+        if (itemExistente) {
+            // Incrementar cantidad
+            carrito = carrito.map(cartItem =>
+                cartItem.id === item.id 
+                    ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                    : cartItem
+            );
+        } else {
+            // Agregar nuevo item
+            carrito.push({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                image_url: item.image_url,
+                category: item.category,
+                quantity: 1
+            });
+        }
+
+        localStorage.setItem("carrito", JSON.stringify(carrito));
+        
+        // Mostrar feedback
+        alert(`¡${item.name} agregado al carrito!`);
+    };
+
+    const itemsFiltrados = selectedCategory === "all" 
+        ? menuItems 
+        : menuItems.filter(item => item.category?.name === selectedCategory);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-orange-500 border-dashed rounded-full animate-spin mx-auto mb-4"></div>
+                    <p>Cargando menú...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
+                        <ChefHat className="text-orange-500" size={36} />
+                        Nuestro Menú
+                    </h1>
+                    
+                    <button 
+                        onClick={() => navigate("/carrito")}
+                        className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition font-semibold flex items-center gap-2"
+                    >
+                        <ShoppingCart size={20} />
+                        Ver Carrito
+                    </button>
+                </div>
+
+                {/* Filtros de Categorías */}
+                {categories.length > 0 && (
+                    <div className="mb-8">
+                        <h2 className="text-lg font-semibold mb-3 text-gray-700">Filtrar por categoría:</h2>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setSelectedCategory("all")}
+                                className={`px-4 py-2 rounded-full transition ${
+                                    selectedCategory === "all" 
+                                        ? "bg-orange-500 text-white" 
+                                        : "bg-white text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                                Todos
+                            </button>
+                            {categories.map(category => (
+                                <button
+                                    key={category}
+                                    onClick={() => setSelectedCategory(category)}
+                                    className={`px-4 py-2 rounded-full transition ${
+                                        selectedCategory === category 
+                                            ? "bg-orange-500 text-white" 
+                                            : "bg-white text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                >
+                                    {category}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Grid de Items */}
+                {itemsFiltrados.length === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500 text-lg">No hay items en esta categoría.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {itemsFiltrados.map(item => (
+                            <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
+                                <div className="h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+                                    {item.image_url ? (
+                                        <img 
+                                            src={item.image_url} 
+                                            alt={item.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <ChefHat size={48} className="text-gray-400" />
+                                    )}
+                                </div>
+                                
+                                <div className="p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-semibold text-lg text-gray-800">{item.name}</h3>
+                                        <span className="text-orange-500 font-bold">${Number(item.price).toFixed(2)}</span>
+                                    </div>
+                                    
+                                    {item.category && (
+                                        <p className="text-sm text-gray-600 mb-3">{item.category.name}</p>
+                                    )}
+                                    
+                                    <button
+                                        onClick={() => agregarAlCarrito(item)}
+                                        className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition font-semibold flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={18} />
+                                        Agregar al Carrito
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 }
