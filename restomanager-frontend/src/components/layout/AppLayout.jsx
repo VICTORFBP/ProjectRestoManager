@@ -13,7 +13,6 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-
       {/* SIDEBAR */}
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-6 font-bold text-xl border-b border-gray-700">
@@ -21,10 +20,19 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 p-4 flex flex-col gap-1">
-          <NavItem to="/" label="Dashboard" icon={<Home size={18} />} show={isAdmin()} />
+          {/* Dashboard - para ambos */}
+          <NavItem to="/" label="Inicio" icon={<Home size={18} />} show={isAdmin() || isMesero()} />
+          
+          {/* Menú - solo admin */}
           <NavItem to="/menu-items" label="Menú" icon={<Utensils size={18} />} show={isAdmin()} />
+          
+          {/* Pedidos - admin y mesero */}
           <NavItem to="/orders" label="Pedidos" icon={<ListOrdered size={18} />} show={isAdmin() || isMesero()} />
-          <NavItem to="/tables" label="Mesas" icon={<Table2 size={18} />} show={isAdmin()} />
+          
+          {/* Mesas - admin y mesero (pero mesero solo ve) */}
+          <NavItem to="/tables" label="Mesas" icon={<Table2 size={18} />} show={isAdmin() || isMesero()} />
+          
+          {/* Usuarios - solo admin */}
           <NavItem to="/users" label="Usuarios" icon={<Users size={18} />} show={isAdmin()} />
           
           {/* Para clientes */}

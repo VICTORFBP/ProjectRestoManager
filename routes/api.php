@@ -61,8 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // RUTAS PARA MESEROS Y ADMIN
     // ============================================
     Route::middleware('role:Administrador,Mesero')->group(function () {
-        // Órdenes (crear, ver, editar)
-        Route::apiResource('orders', OrderController::class);
+        // Órdenes (crear, ver, editar) - ESPECIFICAR EXPLÍCITAMENTE
+        Route::get('orders', [OrderController::class, 'index']);
+        Route::get('orders/{id}', [OrderController::class, 'show']);
+        Route::post('orders', [OrderController::class, 'store']); // ← ¡ESTA FALTA!
+        Route::put('orders/{id}', [OrderController::class, 'update']);
+        Route::patch('orders/{id}', [OrderController::class, 'update']);
         
         // Ver mesas (solo lectura para meseros)
         Route::get('tables', [TableController::class, 'index']);
@@ -76,4 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Ver sus propios pedidos
         Route::get('my-orders', [OrderController::class, 'myOrders']);
     });
+
+    // ============================================
+    // ELIMINAR ÓRDENES (SOLO ADMIN)
+    // ============================================
+    Route::middleware('role:Administrador')->delete('orders/{id}', [OrderController::class, 'destroy']);
 });

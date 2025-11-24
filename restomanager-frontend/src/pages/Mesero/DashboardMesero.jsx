@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Clock, CheckCircle, AlertCircle, Utensils } from "lucide-react";
+import { Plus, Clock, CheckCircle, AlertCircle, Utensils, Users } from "lucide-react";
 import ordersAPI from "../api/orders";
 import tablesAPI from "../api/tables";
 
@@ -8,12 +8,6 @@ export default function DashboardMesero() {
   const [orders, setOrders] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    pending: 0,
-    preparing: 0,
-    served: 0,
-    completed: 0
-  });
 
   useEffect(() => {
     loadData();
@@ -31,7 +25,6 @@ export default function DashboardMesero() {
       
       setOrders(ordersRes.data);
       setTables(tablesRes.data);
-      calculateStats(ordersRes.data);
     } catch (error) {
       console.error("Error cargando datos:", error);
     } finally {
@@ -39,36 +32,18 @@ export default function DashboardMesero() {
     }
   };
 
-  const calculateStats = (ordersData) => {
-    const stats = {
-      pending: ordersData.filter(o => o.status === 'pendiente').length,
-      preparing: ordersData.filter(o => o.status === 'preparando').length,
-      served: ordersData.filter(o => o.status === 'servido').length,
-      completed: ordersData.filter(o => o.status === 'completado').length
-    };
-    setStats(stats);
+  const stats = {
+    pending: orders.filter(o => o.status === 'pendiente').length,
+    preparing: orders.filter(o => o.status === 'preparando').length,
+    served: orders.filter(o => o.status === 'servido').length,
   };
 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      await ordersAPI.update(orderId, { status: newStatus });
-      await loadData(); // Recargar datos
-    } catch (error) {
-      console.error("Error actualizando orden:", error);
-      alert("Error al actualizar el estado de la orden");
-    }
-  };
-
-  const getUrgentOrders = () => {
-    return orders.filter(order => {
-      const orderTime = new Date(order.created_at);
-      const now = new Date();
-      const diffMinutes = (now - orderTime) / (1000 * 60);
-      return order.status === 'pendiente' && diffMinutes > 15;
-    });
-  };
-
-  const urgentOrders = getUrgentOrders();
+  const urgentOrders = orders.filter(order => {
+    const orderTime = new Date(order.created_at);
+    const now = new Date();
+    const diffMinutes = (now - orderTime) / (1000 * 60);
+    return order.status === 'pendiente' && diffMinutes > 15;
+  });
 
   if (loading) {
     return (
@@ -99,7 +74,7 @@ export default function DashboardMesero() {
       </div>
 
       {/* Estadísticas Rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
           <div className="flex items-center gap-3">
             <Clock className="text-yellow-500" size={24} />
@@ -126,16 +101,6 @@ export default function DashboardMesero() {
             <div>
               <p className="text-2xl font-bold">{stats.served}</p>
               <p className="text-gray-600">Por Servir</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="text-green-500" size={24} />
-            <div>
-              <p className="text-2xl font-bold">{stats.completed}</p>
-              <p className="text-gray-600">Completados</p>
             </div>
           </div>
         </div>
@@ -166,125 +131,47 @@ export default function DashboardMesero() {
         </div>
       )}
 
-      {/* Órdenes Recientes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Órdenes Activas */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-lg">Órdenes Activas</h3>
-          </div>
-          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-            {orders.filter(o => ['pendiente', 'preparando', 'servido'].includes(o.status)).length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No hay órdenes activas</p>
-            ) : (
-              orders
-                .filter(o => ['pendiente', 'preparando', 'servido'].includes(o.status))
-                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                .map(order => (
-                  <OrderCard 
-                    key={order.id} 
-                    order={order} 
-                    onStatusUpdate={updateOrderStatus}
-                  />
-                ))
-            )}
-          </div>
-        </div>
-
-        {/* Mesas */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-lg">Estado de Mesas</h3>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {tables.map(table => (
-                <TableStatus key={table.id} table={table} orders={orders} />
-              ))}
-            </div>
+      {/* Acciones Rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="font-semibold text-lg mb-4">Acciones Rápidas</h3>
+          <div className="space-y-3">
+            <Link
+              to="/orders/create"
+              className="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition text-center font-semibold"
+            >
+              Crear Nueva Orden
+            </Link>
+            <Link
+              to="/orders"
+              className="block w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition text-center font-semibold"
+            >
+              Ver Todas las Órdenes
+            </Link>
+            <Link
+              to="/tables"
+              className="block w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition text-center font-semibold"
+            >
+              Ver Estado de Mesas
+            </Link>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-// Componente para tarjeta de orden
-function OrderCard({ order, onStatusUpdate }) {
-  const getStatusColor = (status) => {
-    const colors = {
-      pendiente: 'bg-yellow-100 text-yellow-800',
-      preparando: 'bg-blue-100 text-blue-800',
-      servido: 'bg-orange-100 text-orange-800',
-      completado: 'bg-green-100 text-green-800',
-      cancelado: 'bg-red-100 text-red-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getNextStatus = (currentStatus) => {
-    const transitions = {
-      pendiente: 'preparando',
-      preparando: 'servido',
-      servido: 'completado'
-    };
-    return transitions[currentStatus];
-  };
-
-  const nextStatus = getNextStatus(order.status);
-
-  return (
-    <div className="border rounded-lg p-3 hover:shadow-md transition">
-      <div className="flex justify-between items-start mb-2">
-        <div>
-          <span className="font-semibold">Orden #{order.id}</span>
-          <span className="text-sm text-gray-600 ml-2">
-            Mesa {order.table?.name || 'N/A'}
-          </span>
+        {/* Mesas Disponibles */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <Users size={20} />
+            Mesas Disponibles
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            {tables.filter(t => t.status === 'disponible').slice(0, 6).map(table => (
+              <div key={table.id} className="bg-green-100 border border-green-300 rounded-lg p-3 text-center">
+                <div className="font-bold text-lg">{table.name}</div>
+                <div className="text-sm text-green-700">{table.seats} personas</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(order.status)}`}>
-          {order.status}
-        </span>
-      </div>
-
-      <div className="text-sm text-gray-600 mb-3">
-        <div>Cliente: {order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : 'Walk-in'}</div>
-        <div>Items: {order.items?.length || 0}</div>
-        <div>Total: ${Number(order.total || 0).toFixed(2)}</div>
-        <div className="text-xs">
-          {new Date(order.created_at).toLocaleTimeString()}
-        </div>
-      </div>
-
-      {nextStatus && (
-        <button
-          onClick={() => onStatusUpdate(order.id, nextStatus)}
-          className="w-full bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700 transition"
-        >
-          Marcar como {nextStatus}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// Componente para estado de mesa
-function TableStatus({ table, orders }) {
-  const tableOrders = orders.filter(o => o.table_id === table.id && o.status !== 'completado');
-  const isOccupied = tableOrders.length > 0;
-
-  return (
-    <div className={`p-3 rounded-lg border text-center ${
-      isOccupied ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-    }`}>
-      <div className="font-semibold">{table.name}</div>
-      <div className="text-sm text-gray-600">
-        {table.seats} personas
-      </div>
-      <div className={`text-xs mt-1 ${
-        isOccupied ? 'text-red-600' : 'text-green-600'
-      }`}>
-        {isOccupied ? `${tableOrders.length} orden(es)` : 'Disponible'}
       </div>
     </div>
   );
