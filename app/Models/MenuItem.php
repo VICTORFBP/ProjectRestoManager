@@ -16,9 +16,20 @@ class MenuItem extends Model
         'description',
         'price',
         'category_id',
-        'status',
+        'image_url', // ✅ Agregado
     ];
 
+    /**
+     * Relación con categorías
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Relación con order_items
+     */
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);

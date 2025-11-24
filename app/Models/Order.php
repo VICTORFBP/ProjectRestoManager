@@ -13,9 +13,11 @@ class Order extends Model
     protected $fillable = [
         'customer_id',
         'user_id',
+        'table_id',
         'order_date',
         'status',
         'total',
+        'notes',
     ];
 
     public function customer(): BelongsTo
@@ -28,15 +30,21 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function table(): BelongsTo
+    {
+        return $this->belongsTo(Table::class, 'table_id');
+    }
+
     public function items()
     {
-    return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * Si total es null o 0, calcular dinámicamente
+     */
     public function getTotalAttribute($value)
     {
-        // Si hay valor en BD lo usa, si no lo calcula dinámicamente
         return $value > 0 ? $value : $this->items->sum('subtotal');
     }
-
 }
